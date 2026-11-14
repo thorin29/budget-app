@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.androidx.room3)
 }
 
 android {
@@ -17,8 +19,8 @@ android {
         minSdk = 26
         targetSdk = 37
         // Bump both for every release; the in-app updater compares versionCode.
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.2.0"
 
         val buildDate = SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date())
         buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
@@ -87,6 +89,12 @@ kotlin {
     jvmToolchain(17)
 }
 
+// Room writes each database version's schema here. Commit these files: a
+// future schema change migrates from them (the queue is never dropped).
+room3 {
+    schemaDirectory("$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -103,6 +111,11 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.play.services.code.scanner)
+
+    // Room 3 with a bundled SQLite; the compiler runs through KSP.
+    implementation(libs.androidx.room3.runtime)
+    implementation(libs.androidx.sqlite.bundled)
+    ksp(libs.androidx.room3.compiler)
 
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)

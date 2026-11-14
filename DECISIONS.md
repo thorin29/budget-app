@@ -12,10 +12,21 @@ build in CI for Kairos, so the two apps move together.
 ## Fewer libraries
 
 - OkHttp with kotlinx.serialization, no Retrofit: there are a dozen calls.
-- DataStore for the queue and cache, no Room: the data is small, and all of it
-  can be fetched again from the server.
 - No navigation library: one state decides the screen (setup, month,
   settings).
+
+## Room for what's kept on the phone
+
+Room 3 with a bundled SQLite, the same versions as Kairos. It holds the queue
+of unsent changes, the refused ones, and the last copy of each month and of
+the projection (kept as the server's JSON, since it is fetched again on every
+refresh).
+
+Unlike Kairos's cache, the queue is the only copy of what was entered offline,
+so the database never drops tables on a schema change. A new version needs a
+migration, built from the schema JSON in `app/schemas` (CI uploads it as the
+`room-schemas` artifact; commit it once per database version). 0.1.x kept these
+in DataStore; 0.2.0 moves a waiting queue across on first launch.
 
 ## The token never leaves the Keystore's protection
 

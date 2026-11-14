@@ -11,6 +11,14 @@ activityCompose = "1.10.1"
 composeBom = "2026.09.00"
 datastore = "1.1.1"
 
+# Local database (Room 3), the same versions as the Kairos app. Room 3 is
+# KSP-only. AGP 9's built-in Kotlin needs KSP 2.3.1 or newer (KSP no longer
+# follows the Kotlin version); 2.3.6 works with Kotlin 2.2.21. Don't go back to
+# the old 2.2.21-2.0.x KSP line or add org.jetbrains.kotlin.android.
+room3 = "3.0.3"
+sqlite = "2.7.0"
+ksp = "2.3.6"
+
 # QR scanning through Google Play services: no camera permission, no camera code in the app.
 codeScanner = "16.1.0"
 
@@ -38,6 +46,9 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+androidx-room3-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room3" }
+androidx-room3-compiler = { group = "androidx.room3", name = "room3-compiler", version.ref = "room3" }
+androidx-sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqlite" }
 play-services-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "codeScanner" }
 
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
@@ -52,3 +63,5 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+androidx-room3 = { id = "androidx.room3", version.ref = "room3" }

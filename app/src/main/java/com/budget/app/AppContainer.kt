@@ -5,6 +5,7 @@ import com.budget.app.data.EnrollLink
 import com.budget.app.data.Session
 import com.budget.app.data.Settings
 import com.budget.app.data.budgetStore
+import com.budget.app.data.local.BudgetDatabase
 import com.budget.app.data.remote.ApiClient
 import com.budget.app.data.remote.NetworkMonitor
 import com.budget.app.data.secure.TokenStore
@@ -25,7 +26,8 @@ class AppContainer(context: Context) {
     private var sessionRef: Session? = null
     val api = ApiClient(serverProvider = { sessionRef?.server }, tokenProvider = { tokens.current() })
 
-    val local = LocalStore(app.budgetStore, api.json)
+    val database = BudgetDatabase.build(app)
+    val local = LocalStore(database.localDao(), app.budgetStore, api.json)
     val session = Session(settings, tokens, local, api).also { sessionRef = it }
     val sync = SyncManager(api, local, session)
     val network = NetworkMonitor(app)

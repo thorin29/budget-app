@@ -44,7 +44,13 @@ class UpdateChecker {
     suspend fun check() = withContext(Dispatchers.IO) {
         _checking.value = true
         try {
-            val release = fetch<GhRelease>("https://api.github.com/repos/${BuildConfig.UPDATE_REPO}/releases/latest")
+            // No release published yet is a 404, not a failure: nothing newer.
+            val release = fetchOrNull<GhRelease>("https://api.github.com/repos/${BuildConfig.UPDATE_REPO}/releases/latest")
+                ?: run {
+                    _available.value = null
+                    _lastError.value = null
+                    return@withContext
+                }
             val meta = release.assets.firstOrNull { it.name == "latest.json" }
             val apk = release.assets.firstOrNull { it.name.endsWith(".apk") }
             _available.value = if (meta != null && apk != null) {
@@ -62,6 +68,20 @@ class UpdateChecker {
             _lastError.value = "Couldn't check for updates (${e.message ?: "offline"})."
         } finally {
             _checking.value = false
+        }
+    }
+
+    /** Like [fetch], but a 404 is null. */
+    private inline fun <reified T> fetchOrNull(url: String): T? {
+        val req = Request.Builder()
+            .url(url)
+            .header("User-Agent", "Budget-Android")
+            .header("Accept", "application/vnd.github+json")
+            .build()
+        client.newCall(req).execute().use { resp ->
+            if (resp.code == 404) return null
+            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
+            return json.decodeFromString(resp.body?.string() ?: throw IOException("empty"))
         }
     }
 

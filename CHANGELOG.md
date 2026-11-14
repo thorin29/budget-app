@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0]
+
+- What's kept on the phone (unsent changes, refused ones, the last copy of each month) is now in a
+  Room database. Anything waiting from 0.1.x is moved across on first launch.
+- Check for updates no longer shows an error when no release has been published.
+
 ## [0.1.1]
 
 - Scan the web's QR code from inside the app (Scan QR code on the first screen). Phone cameras
