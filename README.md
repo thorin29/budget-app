@@ -4,7 +4,7 @@ The phone app for [Budget](https://github.com/thorin29/budget), the self-hosted
 budget planner. It talks to your own Budget server and nothing else (apart from
 checking this repo for updates).
 
-> **Status:** v0.3.0. Needs Budget server 0.15.0 or newer.
+> **Status:** v0.3.1. Needs Budget server 0.15.0 or newer.
 
 ## What it does
 
@@ -34,8 +34,10 @@ send when it's back.
 - The server refuses a change if the same entry was changed elsewhere after
   you entered it. The app then lists it under "Not saved".
 
-**Updates itself:** it checks this repo's releases and installs a new version
-from inside the app.
+**Updates itself:** it checks this repo's releases at launch and about every
+two hours in the background. When a newer version is out, a blue dot shows on
+the More tab, App version shows "New", and a notification is posted once for
+that version. The Update screen downloads and installs it.
 
 ## Adding a phone
 

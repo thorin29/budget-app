@@ -57,39 +57,29 @@ import com.budget.app.data.Accent
 import com.budget.app.data.Appearance
 import com.budget.app.data.SessionState
 import com.budget.app.data.ThemeMode
-import com.budget.app.data.update.UpdateInstaller
 import com.budget.app.ui.common.Banner
 import com.budget.app.ui.common.SectionLabel
 import com.budget.app.ui.theme.Budget
 import com.budget.app.ui.theme.Ph
 import com.budget.app.ui.theme.PhIcon
 import com.budget.app.ui.theme.swatchOf
+import com.budget.app.ui.theme.UpdateDot
+import com.budget.app.ui.theme.UpdatePill
 import kotlinx.coroutines.launch
 
 /** The More tab: account, what's waiting, appearance, updates, sign out. */
 @Composable
-fun MoreScreen(container: AppContainer, session: SessionState.SignedIn) {
+fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUpdate: () -> Unit) {
     val c = Budget.colors
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val appearance by container.appearance.collectAsState(initial = Appearance())
     val update by container.updates.available.collectAsState()
-    val checking by container.updates.checking.collectAsState()
-    val checkError by container.updates.lastError.collectAsState()
-    val install by container.installer.state.collectAsState()
     val pending by container.local.queue.collectAsState(initial = emptyList())
     val problems by container.local.problems.collectAsState(initial = emptyList())
-    var checkedOnce by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
     var showAppearance by remember { mutableStateOf(false) }
     var showWaiting by remember { mutableStateOf(false) }
-
-    // Back from the "install unknown apps" screen: carry on if it was granted.
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        val u = container.updates.available.value
-        if (container.installer.canInstall() && u != null) scope.launch { container.installer.downloadAndInstall(u.apkUrl) }
-        else container.installer.reset()
-    }
 
     Column(
         Modifier
@@ -154,41 +144,32 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn) {
 
         SectionLabel("App", c.muted)
         Group {
-            Item(Ph.DOWNLOAD, "Version", value = BuildConfig.VERSION_NAME, trailing = null, onClick = null)
-            Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val u = update
-                if (u != null) {
-                    Text("Version ${u.versionName} is available.", color = c.accent, fontWeight = FontWeight.Bold)
-                    if (u.notes.isNotBlank()) Text(u.notes.trim(), fontSize = 13.sp, color = c.muted)
-                    when (val s = install) {
-                        is UpdateInstaller.State.Downloading -> {
-                            Text("Downloading… ${s.pct}%", fontSize = 13.sp, color = c.muted)
-                            LinearProgressIndicator(progress = { s.pct / 100f }, modifier = Modifier.fillMaxWidth(), color = c.accent, trackColor = c.raised)
-                        }
-                        UpdateInstaller.State.Installing -> Text("Opening the installer…", fontSize = 13.sp, color = c.muted)
-                        UpdateInstaller.State.NeedsPermission -> {
-                            Text("Allow Budget to install updates (once), then come back.", fontSize = 13.sp, color = c.muted)
-                            AccentButton("Allow installs") { permission.launch(container.installer.permissionIntent()) }
-                        }
-                        is UpdateInstaller.State.Error -> {
-                            Text(s.message, fontSize = 13.sp, color = c.danger)
-                            AccentButton("Try again") { scope.launch { container.installer.downloadAndInstall(u.apkUrl) } }
-                        }
-                        UpdateInstaller.State.Idle -> AccentButton("Update to ${u.versionName}") {
-                            scope.launch { container.installer.downloadAndInstall(u.apkUrl) }
-                        }
-                    }
+            if (update != null) {
+                Item(Ph.DOWNLOAD, "Update available", iconTint = UpdateDot, onClick = onOpenUpdate)
+                Divider()
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .clickable(role = Role.Button, onClick = onOpenUpdate)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PhIcon(Ph.DOWNLOAD, null, c.muted)
+                Spacer(Modifier.width(14.dp))
+                Text("App version", color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                if (update != null) {
+                    Text(
+                        "New",
+                        color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.background(UpdatePill, RoundedCornerShape(10.dp)).padding(horizontal = 8.dp, vertical = 2.dp),
+                    )
                 } else {
-                    if (checkedOnce && !checking && checkError == null) Text("You have the latest version.", fontSize = 13.sp, color = c.muted)
-                    checkError?.let { Text(it, fontSize = 13.sp, color = c.danger) }
-                    TextButton(
-                        onClick = {
-                            checkedOnce = true
-                            scope.launch { container.updates.check() }
-                        },
-                        enabled = !checking,
-                    ) { Text(if (checking) "Checking…" else "Check for updates", color = c.accent, fontWeight = FontWeight.SemiBold) }
+                    Text(BuildConfig.VERSION_NAME, color = c.muted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 }
+                Spacer(Modifier.width(6.dp))
+                PhIcon(Ph.CARET_RIGHT, null, c.muted, size = 20.dp)
             }
             Divider()
             Item(Ph.SIGN_OUT, if (confirmSignOut) "Tap again to sign out" else "Sign out this phone", tint = c.danger, trailing = null, onClick = {
@@ -239,6 +220,7 @@ private fun Item(
     value: String = "",
     tint: Color = Budget.colors.ink,
     trailing: Ph? = Ph.CARET_RIGHT,
+    iconTint: Color? = null,
     onClick: (() -> Unit)?,
 ) {
     val c = Budget.colors
@@ -250,7 +232,7 @@ private fun Item(
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PhIcon(icon, null, if (tint == c.ink) c.muted else tint)
+        PhIcon(icon, null, iconTint ?: if (tint == c.ink) c.muted else tint)
         Spacer(Modifier.width(14.dp))
         Text(label, color = tint, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
         if (value.isNotEmpty()) Text(value, color = c.muted, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
@@ -259,16 +241,6 @@ private fun Item(
             PhIcon(trailing, null, c.muted, size = 20.dp)
         }
     }
-}
-
-@Composable
-private fun AccentButton(text: String, onClick: () -> Unit) {
-    val c = Budget.colors
-    Button(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = c.accent, contentColor = c.onAccent),
-    ) { Text(text, fontWeight = FontWeight.Bold) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

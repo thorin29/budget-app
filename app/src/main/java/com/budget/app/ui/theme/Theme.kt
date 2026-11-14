@@ -62,6 +62,10 @@ private fun tones(accent: Accent): Tones = when (accent) {
     Accent.TEAL -> Tones(Color(0xFF0F766E), Color(0xFFDDF3EF), Color(0xFF34D3BF), Color(0xFF123430), Color(0xFF04211E))
 }
 
+/** The update badge colors, the same as the Kairos app's, whatever the accent. */
+val UpdateDot = Color(0xFF4FC3F7)
+val UpdatePill = Color(0xFF0B6FA4)
+
 /** The swatch shown for an accent in the picker (the light-mode tone). */
 fun swatchOf(accent: Accent): Color = tones(accent).light
 

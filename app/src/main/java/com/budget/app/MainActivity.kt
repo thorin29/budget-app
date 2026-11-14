@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import com.budget.app.data.Appearance
 import com.budget.app.data.EnrollLinks
+import com.budget.app.data.update.UpdateNotifier
 import com.budget.app.ui.AppRoot
 import com.budget.app.ui.theme.BudgetTheme
 
@@ -34,5 +35,9 @@ class MainActivity : ComponentActivity() {
 
     private fun takeLink(intent: Intent?) {
         EnrollLinks.parse(intent?.data?.toString())?.let { container.pendingEnrollLink.value = it }
+        if (intent?.getStringExtra(UpdateNotifier.EXTRA_OPEN) == UpdateNotifier.OPEN_UPDATE) {
+            container.openUpdate.value = true
+            intent.removeExtra(UpdateNotifier.EXTRA_OPEN)
+        }
     }
 }

@@ -76,3 +76,13 @@ to send, the balance, what's due) and puts recording one tap away.
 - **Plan** uses the server's own day-by-day projection. A payment today comes
   off every day ahead, so the slider just subtracts it; nothing is
   recalculated on the phone.
+
+## Update badge
+
+Copied from the Kairos app so both behave the same: the same `latest.json`
+release asset, the same blue dot (#4FC3F7) and "New" pill (#0B6FA4), one
+notification per version (the last notified versionCode is saved), and a
+WorkManager check about every two hours plus one at launch. Budget has a
+bottom bar instead of Kairos's top bar and rail, so the dot sits on the More
+tab, which is visible on every screen. The last result is saved, so a failed
+check changes nothing; the badges clear once the newer build is installed.

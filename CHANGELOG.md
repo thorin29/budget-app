@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1]
+
+- Update badge, as in the Kairos app: a blue dot on the More tab, an "Update available" row and a
+  "New" pill on App version, and a notification once per new version that opens the Update screen.
+- New Update screen: installed version, what's new, download & install, check for updates.
+- Checks at launch and in the background about every two hours; the last result is kept if a check
+  fails.
+
 ## [0.3.0]
 
 - New design: Today, Month, Plan and More tabs, Figtree type and Phosphor icons.

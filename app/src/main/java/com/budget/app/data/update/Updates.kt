@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
 import com.budget.app.BuildConfig
+import com.budget.app.data.Settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +21,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /** A newer release than the installed one. */
+@Serializable
 data class UpdateInfo(val versionCode: Int, val versionName: String, val notes: String, val apkUrl: String)
 
 /**
@@ -27,8 +29,12 @@ data class UpdateInfo(val versionCode: Int, val versionName: String, val notes: 
  * Kairos app does: the latest release carries `latest.json` (versionCode,
  * versionName, notes) and the signed APK. Nothing about the person or their
  * server is sent; it is an anonymous read of a public page.
+ *
+ * The last result is kept, so the badges survive a restart and a failed check
+ * (offline, rate-limited) changes nothing. Once the newer build is installed
+ * the versions match and the badges clear by themselves.
  */
-class UpdateChecker {
+class UpdateChecker(private val settings: Settings) {
     private val client = OkHttpClient.Builder().callTimeout(20, TimeUnit.SECONDS).build()
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -41,31 +47,34 @@ class UpdateChecker {
     private val _lastError = MutableStateFlow<String?>(null)
     val lastError: StateFlow<String?> = _lastError
 
-    suspend fun check() = withContext(Dispatchers.IO) {
+    /** Loads the last result saved on the phone. */
+    suspend fun restore() {
+        val saved = settings.get(Settings.UPDATE_LATEST)?.let { runCatching { json.decodeFromString<UpdateInfo>(it) }.getOrNull() }
+        _available.value = saved?.takeIf { it.versionCode > BuildConfig.VERSION_CODE }
+    }
+
+    /** Returns the newer release, or null when there is none or the check failed. */
+    suspend fun check(): UpdateInfo? = withContext(Dispatchers.IO) {
         _checking.value = true
         try {
             // No release published yet is a 404, not a failure: nothing newer.
             val release = fetchOrNull<GhRelease>("https://api.github.com/repos/${BuildConfig.UPDATE_REPO}/releases/latest")
-                ?: run {
-                    _available.value = null
-                    _lastError.value = null
-                    return@withContext
-                }
-            val meta = release.assets.firstOrNull { it.name == "latest.json" }
-            val apk = release.assets.firstOrNull { it.name.endsWith(".apk") }
-            _available.value = if (meta != null && apk != null) {
+            val meta = release?.assets?.firstOrNull { it.name == "latest.json" }
+            val apk = release?.assets?.firstOrNull { it.name.endsWith(".apk") }
+            val found = if (meta != null && apk != null) {
                 val latest = fetch<LatestJson>(meta.url)
-                if (latest.versionCode > BuildConfig.VERSION_CODE) {
-                    UpdateInfo(latest.versionCode, latest.versionName, latest.notes, apk.url)
-                } else {
-                    null
-                }
+                UpdateInfo(latest.versionCode, latest.versionName, latest.notes, apk.url)
+                    .takeIf { it.versionCode > BuildConfig.VERSION_CODE }
             } else {
                 null
             }
+            settings.set(Settings.UPDATE_LATEST, found?.let { json.encodeToString(UpdateInfo.serializer(), it) })
+            _available.value = found
             _lastError.value = null
+            found
         } catch (e: Exception) {
             _lastError.value = "Couldn't check for updates (${e.message ?: "offline"})."
+            null
         } finally {
             _checking.value = false
         }

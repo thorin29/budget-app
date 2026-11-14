@@ -38,7 +38,6 @@ import com.budget.app.data.MonthLogic
 import com.budget.app.data.remote.MonthEntry
 import com.budget.app.data.remote.MonthView
 import com.budget.app.data.sync.Overlay
-import com.budget.app.data.update.UpdateInfo
 import com.budget.app.ui.common.Banner
 import com.budget.app.ui.common.BillTile
 import com.budget.app.ui.month.MonthViewModel
@@ -52,7 +51,6 @@ import java.time.LocalDate
 @Composable
 fun TodayScreen(
     vm: MonthViewModel,
-    update: UpdateInfo?,
     onRecord: (MonthEntry?) -> Unit,
     onEditBalance: (MonthView) -> Unit,
     onOpenMonth: () -> Unit,
@@ -108,9 +106,6 @@ fun TodayScreen(
                     c.danger, c.dangerSoft, icon = Ph.WARNING,
                     modifier = Modifier.clickable(onClick = onOpenMore),
                 )
-            }
-            update?.let { u ->
-                item { Banner("Version ${u.versionName} is ready. Open More to install it.", c.accent, c.accentSoft, icon = Ph.DOWNLOAD, modifier = Modifier.clickable(onClick = onOpenMore)) }
             }
             ui.error?.let { e -> item { Banner(e, c.danger, c.dangerSoft, icon = Ph.WARNING) } }
 

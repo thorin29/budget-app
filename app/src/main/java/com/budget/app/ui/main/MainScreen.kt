@@ -1,6 +1,16 @@
 package com.budget.app.ui.main
 
+import android.Manifest
+import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.semantics.contentDescription
+import com.budget.app.data.Settings
+import com.budget.app.ui.settings.UpdateScreen
+import com.budget.app.ui.theme.UpdateDot
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -77,6 +87,26 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
 
     var record by remember { mutableStateOf<RecordRequest?>(null) }
     var editingBalanceOf by remember { mutableStateOf<MonthViewModel?>(null) }
+    var showUpdate by rememberSaveable { mutableStateOf(false) }
+
+    // Opened from the update notification: straight to the Update screen.
+    val openUpdate by container.openUpdate.collectAsState()
+    LaunchedEffect(openUpdate) {
+        if (openUpdate) {
+            tab = Tab.MORE
+            showUpdate = true
+            container.openUpdate.value = false
+        }
+    }
+
+    // Android 13+: ask once for notifications, for "Update available".
+    val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= 33 && container.settings.get(Settings.ASKED_NOTIFICATIONS) == null) {
+            container.settings.set(Settings.ASKED_NOTIFICATIONS, "1")
+            notifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     // Showing a tab refreshes it, so a change made on one shows on the others.
     LaunchedEffect(tab) {
@@ -88,14 +118,13 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
         }
     }
 
-    BackHandler(enabled = tab != Tab.TODAY) { tab = Tab.TODAY }
+    BackHandler(enabled = tab != Tab.TODAY && !showUpdate) { tab = Tab.TODAY }
 
     Column(Modifier.fillMaxSize().background(c.background)) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (tab) {
                 Tab.TODAY -> com.budget.app.ui.today.TodayScreen(
                     vm = todayVm,
-                    update = update,
                     onRecord = { record = RecordRequest(todayVm, it) },
                     onEditBalance = { editingBalanceOf = todayVm },
                     onOpenMonth = { tab = Tab.MONTH },
@@ -104,10 +133,17 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
                 )
                 Tab.MONTH -> MonthScreen(monthVm, onRecord = { record = RecordRequest(monthVm, it) })
                 Tab.PLAN -> PlanScreen(planVm, onEditBalance = { editingBalanceOf = todayVm })
-                Tab.MORE -> MoreScreen(container, session)
+                Tab.MORE -> if (showUpdate) {
+                    UpdateScreen(container, onBack = { showUpdate = false })
+                } else {
+                    MoreScreen(container, session, onOpenUpdate = { showUpdate = true })
+                }
             }
         }
-        BottomBar(tab, onSelect = { tab = it })
+        BottomBar(tab, updateAvailable = update != null, onSelect = {
+            if (it == tab && it == Tab.MORE) showUpdate = false
+            tab = it
+        })
     }
 
     record?.let { r ->
@@ -147,7 +183,7 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
 }
 
 @Composable
-private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
+private fun BottomBar(current: Tab, updateAvailable: Boolean, onSelect: (Tab) -> Unit) {
     val c = Budget.colors
     Column(Modifier.fillMaxWidth().background(c.surface)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
@@ -171,6 +207,19 @@ private fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
                         contentAlignment = Alignment.Center,
                     ) {
                         PhIcon(if (on) t.iconOn else t.icon, null, if (on) c.accent else c.muted)
+                        // The update dot, on every screen: light blue with a ring in the bar color.
+                        if (t == Tab.MORE && updateAvailable) {
+                            Box(
+                                Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 2.dp, end = 12.dp)
+                                    .size(14.dp)
+                                    .background(c.surface, CircleShape)
+                                    .padding(2.dp)
+                                    .background(UpdateDot, CircleShape)
+                                    .semantics { contentDescription = "Update available" },
+                            )
+                        }
                     }
                     Text(
                         t.label,

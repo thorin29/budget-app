@@ -10,6 +10,7 @@ lifecycle = "2.9.0"
 activityCompose = "1.10.1"
 composeBom = "2026.09.00"
 datastore = "1.1.1"
+work = "2.9.1" # background update check, same as the Kairos app
 
 # Local database (Room 3), the same versions as the Kairos app. Room 3 is
 # KSP-only. AGP 9's built-in Kotlin needs KSP 2.3.1 or newer (KSP no longer
@@ -45,6 +46,7 @@ androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-room3-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room3" }
 androidx-room3-compiler = { group = "androidx.room3", name = "room3-compiler", version.ref = "room3" }

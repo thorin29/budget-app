@@ -31,6 +31,11 @@ class Settings(private val store: DataStore<Preferences>) {
         const val USERNAME = "username"
         const val DEVICE_NAME = "device_name"
         const val LAST_UPDATE_CHECK = "last_update_check"
+        /** The newest release seen, as JSON, so badges survive restarts and failed checks. */
+        const val UPDATE_LATEST = "update_latest"
+        /** The last versionCode a notification was posted for; each version notifies once. */
+        const val UPDATE_NOTIFIED = "update_notified"
+        const val ASKED_NOTIFICATIONS = "asked_notifications"
         const val THEME_MODE = "theme_mode"
         const val ACCENT = "accent"
     }

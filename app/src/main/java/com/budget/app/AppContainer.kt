@@ -36,11 +36,14 @@ class AppContainer(context: Context) {
     val session = Session(settings, tokens, local, api).also { sessionRef = it }
     val sync = SyncManager(api, local, session)
     val network = NetworkMonitor(app)
-    val updates = UpdateChecker()
+    val updates = UpdateChecker(settings)
     val installer = UpdateInstaller(app)
 
     /** A budget://enroll link the phone was opened with, waiting for the setup screen. */
     val pendingEnrollLink = MutableStateFlow<EnrollLink?>(null)
+
+    /** Set when the app was opened from the update notification: show the Update screen. */
+    val openUpdate = MutableStateFlow(false)
 
     /** Light/dark and accent, chosen on this phone. Kept through sign-out. */
     val appearance: Flow<Appearance> =
