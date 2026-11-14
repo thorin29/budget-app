@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0]
+
+- New design: Today, Month, Plan and More tabs, Figtree type and Phosphor icons.
+- Recording is now pick, type on a number pad, Review, Confirm. The date can be picked from a calendar.
+- Plan tab: the bills balance walked forward with a slider for "if I pay today".
+- Appearance: light, dark or follow the phone, and six accent colors (Cobalt by default).
+- New app icon.
+
 ## [0.2.0]
 
 - What's kept on the phone (unsent changes, refused ones, the last copy of each month) is now in a

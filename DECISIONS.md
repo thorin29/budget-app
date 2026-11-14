@@ -57,3 +57,22 @@ sheet; Confirm records it.
 As in the Kairos app: the latest release carries `latest.json` and the signed
 APK. The app compares `versionCode`, downloads only from github.com over HTTPS,
 and hands the file to the system installer.
+
+## The 0.3 design
+
+The phone isn't a copy of the web. It opens on what matters on the go (safe
+to send, the balance, what's due) and puts recording one tap away.
+
+- **Figtree**, bundled (five weights, Latin), with tabular figures so amounts
+  line up.
+- **Phosphor Icons**, bundled as vector drawables: Regular, with Fill for the
+  active tab and paid items. Bill icons are guessed from the item's name, then
+  its category (`BillIcons`), since the server stores no icon.
+- **One accent**, chosen per phone: Cobalt, Violet, Graphite, Forest, Plum or
+  Teal, each with a light and a dark tone. Warnings stay amber and red, so no
+  accent is orange or red.
+- **The number pad** starts on the planned amount; the first key typed
+  replaces it. Review then Confirm keeps the web's confirmation step.
+- **Plan** uses the server's own day-by-day projection. A payment today comes
+  off every day ahead, so the slider just subtracts it; nothing is
+  recalculated on the phone.

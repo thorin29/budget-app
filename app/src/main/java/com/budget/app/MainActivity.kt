@@ -5,6 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.budget.app.data.Appearance
 import com.budget.app.data.EnrollLinks
 import com.budget.app.ui.AppRoot
 import com.budget.app.ui.theme.BudgetTheme
@@ -17,7 +20,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         takeLink(intent)
         setContent {
-            BudgetTheme {
+            val appearance by container.appearance.collectAsState(initial = Appearance())
+            BudgetTheme(appearance) {
                 AppRoot(container)
             }
         }

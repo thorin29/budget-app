@@ -44,9 +44,7 @@ class MonthViewModel(private val c: AppContainer) : ViewModel() {
         c.local.problems.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val syncing: StateFlow<Boolean> = c.sync.syncing
 
-    init {
-        load()
-    }
+    // Loaded when its tab is shown (MainScreen), so switching tabs refreshes it.
 
     fun shift(by: Int) {
         val next = YearMonth.of(_ui.value.year, _ui.value.month).plusMonths(by.toLong())

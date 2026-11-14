@@ -17,6 +17,21 @@ object Dates {
 
     fun monthTitle(year: Int, month: Int): String = YearMonth.of(year, month).format(MONTH)
 
+    /** "November". */
+    fun monthName(year: Int, month: Int): String = YearMonth.of(year, month).format(MONTH_NAME)
+
+    /** "Saturday, Nov 14". */
+    fun weekdayDate(day: LocalDate): String = day.format(WEEKDAY)
+
+    /** "Today, Nov 14" for today, else "Nov 3". */
+    fun dayLabel(iso: String, today: LocalDate = LocalDate.now()): String {
+        val s = short(iso) ?: iso
+        return if (iso.take(10) == today.toString()) "Today, $s" else s
+    }
+
+    private val MONTH_NAME = DateTimeFormatter.ofPattern("MMMM", Locale.US)
+    private val WEEKDAY = DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.US)
+
     /** The due date of [dueDay] in that month, clamped to the month's length. */
     fun dueDate(year: Int, month: Int, dueDay: Int?): LocalDate? {
         if (dueDay == null) return null

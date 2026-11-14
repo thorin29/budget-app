@@ -1,7 +1,10 @@
 package com.budget.app
 
 import android.content.Context
+import com.budget.app.data.Accent
+import com.budget.app.data.Appearance
 import com.budget.app.data.EnrollLink
+import com.budget.app.data.ThemeMode
 import com.budget.app.data.Session
 import com.budget.app.data.Settings
 import com.budget.app.data.budgetStore
@@ -13,7 +16,9 @@ import com.budget.app.data.sync.LocalStore
 import com.budget.app.data.sync.SyncManager
 import com.budget.app.data.update.UpdateChecker
 import com.budget.app.data.update.UpdateInstaller
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 
 /** Everything the screens share, built once per process. */
 class AppContainer(context: Context) {
@@ -36,4 +41,15 @@ class AppContainer(context: Context) {
 
     /** A budget://enroll link the phone was opened with, waiting for the setup screen. */
     val pendingEnrollLink = MutableStateFlow<EnrollLink?>(null)
+
+    /** Light/dark and accent, chosen on this phone. Kept through sign-out. */
+    val appearance: Flow<Appearance> =
+        combine(settings.observe(Settings.THEME_MODE), settings.observe(Settings.ACCENT)) { mode, accent ->
+            Appearance(ThemeMode.from(mode), Accent.from(accent))
+        }
+
+    suspend fun setAppearance(value: Appearance) {
+        settings.set(Settings.THEME_MODE, value.mode.key)
+        settings.set(Settings.ACCENT, value.accent.key)
+    }
 }

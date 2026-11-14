@@ -201,14 +201,9 @@ fun SetupScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .size(32.dp)
-                        .background(c.accent, RoundedCornerShape(10.dp)),
-                    contentAlignment = Alignment.Center,
-                ) { Text("✓", color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold) }
+                com.budget.app.ui.common.LedgerMark(32.dp)
                 Spacer(Modifier.size(10.dp))
-                Text("Budget", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = c.ink)
+                Text("Budget", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = c.ink)
             }
 
             if (reason != null) Banner(reason, c.warn, c.warnSoft)

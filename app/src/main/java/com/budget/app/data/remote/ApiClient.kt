@@ -76,7 +76,9 @@ class ApiClient(
 
     suspend fun month(year: Int, month: Int): MonthView = decode(send("GET", "/api/v1/months/$year/$month"))
 
-    suspend fun projection(): Projection = decode(send("GET", "/api/v1/projection"))
+    suspend fun projection(horizonDays: Int? = null): Projection = decode(
+        send("GET", "/api/v1/projection", query = horizonDays?.let { mapOf("horizonDays" to it.toString()) } ?: emptyMap()),
+    )
 
     suspend fun recordActual(
         year: Int,
@@ -126,10 +128,13 @@ class ApiClient(
         server: String? = null,
         auth: Boolean = true,
         idempotencyKey: String? = null,
+        query: Map<String, String> = emptyMap(),
     ): String {
         val base = (server ?: serverProvider() ?: throw IOException("No server")).toHttpUrlOrNull()
             ?: throw IOException("Bad server address")
-        val url = base.newBuilder().encodedPath(path).build()
+        val url = base.newBuilder().encodedPath(path).apply {
+            query.forEach { (k, v) -> addQueryParameter(k, v) }
+        }.build()
         val builder = Request.Builder().url(url)
         val payload = body?.toRequestBody(jsonType)
         when (method) {

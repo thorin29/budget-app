@@ -4,26 +4,38 @@ The phone app for [Budget](https://github.com/thorin29/budget), the self-hosted
 budget planner. It talks to your own Budget server and nothing else (apart from
 checking this repo for updates).
 
-> **Status:** v0.1.0. Needs Budget server 0.15.0 or newer.
+> **Status:** v0.3.0. Needs Budget server 0.15.0 or newer.
 
 ## What it does
 
-- **This month:** bills by half of the month, income, anything unpaid from
-  last month, and the item paid from what's left over.
-- **Four figures:**
-  - the bills balance (tap to update);
-  - what's free after the first half;
-  - what's free after the month;
-  - what's safe to send today.
-- **Recording a payment:** tap a bill, check the amount and the date, then press
-  Confirm. There is no one-tap tick, the same as on the web.
-- **Works offline:** changes made without a connection wait on the phone and
-  send when it's back.
-  - Each change is applied once, even if it has to be sent twice.
-  - The server refuses a change if the same entry was changed elsewhere after
-    you entered it. The app then lists it under "Not saved".
-- **Updates itself:** it checks this repo's releases and installs a new version
-  from inside the app.
+Four tabs along the bottom:
+
+- **Today:** what's safe to send today, the bills balance (tap to update),
+  what's free after the month, and the next bills due, each with a record
+  button.
+- **Month:** every item by half of the month, anything still owed from
+  earlier, the item paid from what's left over, and income. Step back or
+  forward a month.
+- **Plan:** the bills balance walked forward 30–90 days, with the lowest
+  point marked, and a slider showing what a payment today would do to it.
+- **More:** what's waiting to send, a link to the web for year reports,
+  appearance, updates and sign-out.
+
+**Recording a payment** always takes a confirmation, as on the web: pick the
+bill (due ones are offered first), check or type the amount on the number pad,
+pick the date, then **Review** and **Confirm**.
+
+**Appearance:** light, dark or follow the phone, and one of six accent colors
+(Cobalt by default), set per phone under More → Appearance.
+
+**Works offline:** changes made without a connection wait on the phone and
+send when it's back.
+- Each change is applied once, even if it has to be sent twice.
+- The server refuses a change if the same entry was changed elsewhere after
+  you entered it. The app then lists it under "Not saved".
+
+**Updates itself:** it checks this repo's releases and installs a new version
+from inside the app.
 
 ## Adding a phone
 
@@ -65,3 +77,10 @@ are in `gradle/libs.versions.toml`.
 ## License
 
 MIT
+
+## Credits
+
+- [Figtree](https://github.com/erikdkennedy/figtree) font, SIL Open Font
+  License 1.1 (`licenses/Figtree-OFL.txt`).
+- [Phosphor Icons](https://phosphoricons.com), MIT
+  (`licenses/Phosphor-MIT.txt`).

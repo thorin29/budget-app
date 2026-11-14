@@ -96,6 +96,19 @@ data class MonthView(
 data class LowPoint(val date: String = "", val balanceCents: Long = 0)
 
 @Serializable
+data class ProjectionEvent(val name: String = "", val amountCents: Long = 0, val kind: String = "")
+
+@Serializable
+data class ProjectionDay(
+    val date: String = "",
+    val outCents: Long = 0,
+    val inCents: Long = 0,
+    /** Closing balance for the day. */
+    val balanceCents: Long = 0,
+    val events: List<ProjectionEvent> = emptyList(),
+)
+
+@Serializable
 data class Projection(
     val safeToPayCents: Long = 0,
     val lowPoint: LowPoint = LowPoint(),
@@ -103,6 +116,10 @@ data class Projection(
     val horizonDays: Int = 45,
     val nextPayDate: String? = null,
     val committedBeforeNextPayCents: Long = 0,
+    val openingBalanceCents: Long = 0,
+    val bufferCents: Long = 0,
+    val shortfall: Boolean = false,
+    val days: List<ProjectionDay> = emptyList(),
 )
 
 @Serializable
