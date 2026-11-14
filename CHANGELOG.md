@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.3]
+
+- Checks for an update every time the app opens fresh, as the Kairos app does, so a new release
+  shows its badge right away.
+
 ## [0.3.2]
 
 - The QR scanner is now inside the app (CameraX and ZXing, both open source), so it works without

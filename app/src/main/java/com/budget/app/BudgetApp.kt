@@ -36,14 +36,20 @@ class BudgetApp : Application() {
         scope.launch { container.updates.restore() }
         UpdateCheckWorker.schedule(this)
 
-        // ...and whenever the app comes to the front; check for an update at most every 30 minutes.
+        // ...as soon as the app opens fresh, as in the Kairos app, and when it comes
+        // back to the front, at most every 30 minutes. (A background wake-up for
+        // the job above has no screen, so it doesn't count as opening.)
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            private var opened = false
+
             override fun onStart(owner: LifecycleOwner) {
                 container.network.recheck()
+                val fresh = !opened
+                opened = true
                 scope.launch {
                     if (container.session.state.value is SessionState.SignedIn) container.sync.flush()
                     val last = container.settings.get(Settings.LAST_UPDATE_CHECK)?.toLongOrNull() ?: 0L
-                    if (System.currentTimeMillis() - last > 30 * 60_000L) {
+                    if (fresh || System.currentTimeMillis() - last > 30 * 60_000L) {
                         container.updates.check()
                         container.settings.set(Settings.LAST_UPDATE_CHECK, System.currentTimeMillis().toString())
                         container.updates.available.value?.let { UpdateNotifier.notifyOnce(this@BudgetApp, container.settings, it) }
