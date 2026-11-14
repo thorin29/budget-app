@@ -23,7 +23,7 @@ android {
         val buildDate = SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date())
         buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
         // The GitHub repo the in-app updater reads releases from.
-        buildConfigField("String", "UPDATE_REPO", "\"thorin29/budget-android\"")
+        buildConfigField("String", "UPDATE_REPO", "\"thorin29/budget-app\"")
     }
 
     signingConfigs {
