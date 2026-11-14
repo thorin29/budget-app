@@ -4,7 +4,7 @@ The phone app for [Budget](https://github.com/thorin29/budget), the self-hosted
 budget planner. It talks to your own Budget server and nothing else (apart from
 checking this repo for updates).
 
-> **Status:** v0.3.3. Needs Budget server 0.15.0 or newer.
+> **Status:** v0.4.0. Needs Budget server 0.15.0 or newer.
 
 ## What it does
 
@@ -24,6 +24,10 @@ Four tabs along the bottom:
 **Recording a payment** always takes a confirmation, as on the web: pick the
 bill (due ones are offered first), check or type the amount on the number pad,
 pick the date, then **Review** and **Confirm**.
+
+**Bill reminders** (optional, More → Bill reminders): a notification around
+8 AM the day a bill is due, or a day or two before. Bills already recorded are
+skipped.
 
 **Appearance:** light, dark or follow the phone, and one of six accent colors
 (Cobalt by default), set per phone under More → Appearance.

@@ -93,3 +93,12 @@ In the app, not Google's: CameraX shows the camera and ZXing reads the code,
 both open source. Google's Play-services scanner needed Play services (and
 on GrapheneOS, camera access granted to them). Budget asks for the camera
 only when Scan is tapped, and typing the address and code always works.
+
+## Bill reminders
+
+A WorkManager job about hourly; the first run after 8 AM each day reminds
+once (the day is saved). It reads this month, plus next when the lead reaches
+into it, from the server or the saved copy, and applies anything waiting to
+send so a bill paid offline isn't reminded. One notification per day lists
+the bills. Off by default, chosen per phone; the job only exists while
+reminders are on.

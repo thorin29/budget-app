@@ -4,6 +4,8 @@ import android.content.Context
 import com.budget.app.data.Accent
 import com.budget.app.data.Appearance
 import com.budget.app.data.EnrollLink
+import com.budget.app.data.ReminderLead
+import com.budget.app.data.reminders.BillReminderWorker
 import com.budget.app.data.ThemeMode
 import com.budget.app.data.Session
 import com.budget.app.data.Settings
@@ -19,6 +21,7 @@ import com.budget.app.data.update.UpdateInstaller
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 
 /** Everything the screens share, built once per process. */
 class AppContainer(context: Context) {
@@ -50,6 +53,16 @@ class AppContainer(context: Context) {
         combine(settings.observe(Settings.THEME_MODE), settings.observe(Settings.ACCENT)) { mode, accent ->
             Appearance(ThemeMode.from(mode), Accent.from(accent))
         }
+
+    /** Bill reminders on this phone. Off unless turned on under More. */
+    val reminderLead: Flow<ReminderLead> = settings.observe(Settings.REMINDER_LEAD).map { ReminderLead.from(it) }
+
+    suspend fun setReminderLead(lead: ReminderLead) {
+        settings.set(Settings.REMINDER_LEAD, lead.key)
+        // A new choice reminds afresh today if a bill qualifies.
+        settings.set(Settings.REMINDER_LAST_DAY, null)
+        BillReminderWorker.sync(app, lead)
+    }
 
     suspend fun setAppearance(value: Appearance) {
         settings.set(Settings.THEME_MODE, value.mode.key)

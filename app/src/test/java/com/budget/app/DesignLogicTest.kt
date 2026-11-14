@@ -171,3 +171,50 @@ class AppearanceTest {
         assertEquals(ThemeMode.DARK, ThemeMode.from("dark"))
     }
 }
+
+class ReminderLogicTest {
+    private val view = MonthView(
+        year = 2026, month = 11,
+        halves = listOf(
+            HalfSummary(
+                HalfInfo(1, "2nd half"),
+                listOf(
+                    entry("w", "Water", dueDay = 18, budgeted = 64_12),
+                    entry("e", "Electric", dueDay = 18, budgeted = 172_40),
+                    entry("p", "Phone", dueDay = 18, actual = 85_00),
+                    entry("i", "Internet", dueDay = 22),
+                ),
+            ),
+        ),
+        income = listOf(entry("pay", "Pay", dueDay = 18, kind = "INCOME")),
+    )
+    private val dec = MonthView(year = 2026, month = 12, halves = listOf(HalfSummary(HalfInfo(0, "1st"), listOf(entry("m", "Mortgage", dueDay = 1).copy(year = 2026, month = 12)))))
+
+    @Test fun picksUnpaidBillsDueOnTheLeadDay() {
+        val due = com.budget.app.data.ReminderLogic.dueOn(listOf(view), LocalDate.of(2026, 11, 17), com.budget.app.data.ReminderLead.ONE_DAY)
+        assertEquals(listOf("Electric", "Water"), due.map { it.name })
+    }
+
+    @Test fun offAndOtherDaysAreEmpty() {
+        assertEquals(0, com.budget.app.data.ReminderLogic.dueOn(listOf(view), LocalDate.of(2026, 11, 17), com.budget.app.data.ReminderLead.OFF).size)
+        assertEquals(0, com.budget.app.data.ReminderLogic.dueOn(listOf(view), LocalDate.of(2026, 11, 15), com.budget.app.data.ReminderLead.DAY_OF).size)
+    }
+
+    @Test fun reachesIntoNextMonth() {
+        val due = com.budget.app.data.ReminderLogic.dueOn(listOf(view, dec), LocalDate.of(2026, 11, 29), com.budget.app.data.ReminderLead.TWO_DAYS)
+        assertEquals(listOf("Mortgage"), due.map { it.name })
+    }
+
+    @Test fun messages() {
+        val one = com.budget.app.data.ReminderLogic.message(listOf(entry("e", "Electric", budgeted = 172_40)), com.budget.app.data.ReminderLead.DAY_OF)!!
+        assertEquals("Electric is due today", one.title)
+        assertEquals("$172.40 · tap to record it", one.body)
+        val two = com.budget.app.data.ReminderLogic.message(
+            listOf(entry("e", "Electric", budgeted = 172_40), entry("w", "Water", budgeted = 64_12)),
+            com.budget.app.data.ReminderLead.ONE_DAY,
+        )!!
+        assertEquals("2 bills due tomorrow", two.title)
+        assertEquals("Electric $172.40, Water $64.12", two.body)
+        assertNull(com.budget.app.data.ReminderLogic.message(emptyList(), com.budget.app.data.ReminderLead.ONE_DAY))
+    }
+}

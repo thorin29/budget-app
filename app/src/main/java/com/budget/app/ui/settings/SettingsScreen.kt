@@ -1,6 +1,8 @@
 package com.budget.app.ui.settings
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -55,6 +57,8 @@ import com.budget.app.AppContainer
 import com.budget.app.BuildConfig
 import com.budget.app.data.Accent
 import com.budget.app.data.Appearance
+import com.budget.app.data.ReminderLead
+import com.budget.app.data.reminders.BillReminderWorker
 import com.budget.app.data.SessionState
 import com.budget.app.data.ThemeMode
 import com.budget.app.ui.common.Banner
@@ -79,6 +83,14 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
     val problems by container.local.problems.collectAsState(initial = emptyList())
     var confirmSignOut by remember { mutableStateOf(false) }
     var showAppearance by remember { mutableStateOf(false) }
+    var showReminders by remember { mutableStateOf(false) }
+    val reminderLead by container.reminderLead.collectAsState(initial = ReminderLead.OFF)
+    var pendingLead by remember { mutableStateOf<ReminderLead?>(null) }
+    // Reminders need notifications; ask when they're turned on, if not allowed yet.
+    val notifyPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        pendingLead?.let { lead -> scope.launch { container.setReminderLead(lead) } }
+        pendingLead = null
+    }
     var showWaiting by remember { mutableStateOf(false) }
 
     Column(
@@ -140,6 +152,8 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
         SectionLabel("This phone", c.muted)
         Group {
             Item(Ph.CONTRAST, "Appearance", value = "${appearance.mode.label} · ${appearance.accent.label}", onClick = { showAppearance = true })
+            Divider()
+            Item(Ph.BELL, "Bill reminders", value = reminderLead.label, onClick = { showReminders = true })
         }
 
         SectionLabel("App", c.muted)
@@ -187,6 +201,23 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
         Text(
             "To sign this phone out from elsewhere, use Settings → Sign-in & people on the web. Changing your password there signs out every phone.",
             color = c.muted, fontSize = 13.sp, modifier = Modifier.padding(start = 4.dp, top = 10.dp).navigationBarsPadding(),
+        )
+    }
+
+    if (showReminders) {
+        ReminderSheet(
+            current = reminderLead,
+            notificationsBlocked = reminderLead != ReminderLead.OFF && !BillReminderWorker.canPost(context),
+            onPick = { lead ->
+                showReminders = false
+                if (lead != ReminderLead.OFF && Build.VERSION.SDK_INT >= 33 && !BillReminderWorker.canPost(context)) {
+                    pendingLead = lead
+                    notifyPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    scope.launch { container.setReminderLead(lead) }
+                }
+            },
+            onDismiss = { showReminders = false },
         )
     }
 
@@ -298,6 +329,50 @@ private fun AppearanceSheet(current: Appearance, onPick: (Appearance) -> Unit, o
                         Text(accent.label, color = if (on) c.ink else c.muted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReminderSheet(current: ReminderLead, notificationsBlocked: Boolean, onPick: (ReminderLead) -> Unit, onDismiss: () -> Unit) {
+    val c = Budget.colors
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = c.surface,
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp).navigationBarsPadding().padding(bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text("Bill reminders", color = c.ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+            Text(
+                "A notification around 8 AM for unpaid bills. Bills you've already recorded are skipped.",
+                color = c.muted, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp),
+            )
+            ReminderLead.entries.forEach { lead ->
+                val on = lead == current
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .background(if (on) c.accentSoft else Color.Transparent, RoundedCornerShape(14.dp))
+                        .clickable(role = Role.RadioButton) { onPick(lead) }
+                        .padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    PhIcon(if (on) Ph.CHECK_CIRCLE_FILL else Ph.CIRCLE, null, if (on) c.accent else c.muted)
+                    Spacer(Modifier.width(12.dp))
+                    Text(lead.label, color = c.ink, fontSize = 16.sp, fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold)
+                }
+            }
+            if (notificationsBlocked) {
+                Text(
+                    "Notifications are off for Budget, so reminders can't show. Turn them on in the phone's settings.",
+                    color = c.danger, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp),
+                )
             }
         }
     }

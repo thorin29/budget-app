@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0]
+
+- Bill reminders (More → Bill reminders): a notification around 8 AM on the day a bill is due, or
+  one or two days before. Off unless turned on. Bills already recorded, or waiting to send, are
+  skipped, and it works from the saved copy when offline.
+
 ## [0.3.3]
 
 - Checks for an update every time the app opens fresh, as the Kairos app does, so a new release

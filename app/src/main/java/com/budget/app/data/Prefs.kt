@@ -36,6 +36,10 @@ class Settings(private val store: DataStore<Preferences>) {
         /** The last versionCode a notification was posted for; each version notifies once. */
         const val UPDATE_NOTIFIED = "update_notified"
         const val ASKED_NOTIFICATIONS = "asked_notifications"
+        /** Bill reminders: off, 0, 1 or 2 days before. */
+        const val REMINDER_LEAD = "reminder_lead"
+        /** The last day reminders ran, so each day reminds once. */
+        const val REMINDER_LAST_DAY = "reminder_last_day"
         const val THEME_MODE = "theme_mode"
         const val ACCENT = "accent"
     }
