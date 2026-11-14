@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -45,12 +46,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.budget.app.AppContainer
+import com.budget.app.data.EnrollLinks
 import com.budget.app.data.LocalNetwork
 import com.budget.app.data.ServerUrl
 import com.budget.app.data.remote.ApiException
 import com.budget.app.ui.common.Banner
 import com.budget.app.ui.common.Panel
 import com.budget.app.ui.theme.Budget
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -84,17 +89,6 @@ fun SetupScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var serverVersion by rememberSaveable { mutableStateOf<String?>(null) }
 
-    // Opened from the web's QR code: fill in server and code, and skip ahead.
-    val link by container.pendingEnrollLink.collectAsState()
-    LaunchedEffect(link) {
-        link?.let {
-            server = it.server
-            code = it.code
-            step = Step.SERVER.name
-            container.pendingEnrollLink.value = null
-        }
-    }
-
     fun explain(e: Exception): String = when (e) {
         is ApiException -> when {
             e.status == 429 -> "Too many attempts. Wait a few minutes and try again."
@@ -118,7 +112,8 @@ fun SetupScreen(
         scope.launch {
             try {
                 serverVersion = container.session.checkServer(normalized)
-                step = Step.CODE.name
+                // A code already filled in (from the QR) goes straight to sign-in.
+                step = if (CODE_SHAPE.matches(code.trim().uppercase())) Step.ACCOUNT.name else Step.CODE.name
             } catch (e: Exception) {
                 error = explain(e)
             } finally {
@@ -129,6 +124,48 @@ fun SetupScreen(
 
     val localPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) checkServer() else error = "Budget needs permission to reach a server on your home network."
+    }
+
+    fun continueFromServer() {
+        val normalized = ServerUrl.normalize(server)
+        if (normalized != null && LocalNetwork.needsPermission(context, normalized)) {
+            localPermission.launch(LocalNetwork.PERMISSION)
+        } else {
+            checkServer()
+        }
+    }
+
+    // From the web's QR code, scanned in the app or opened as a link: fill in
+    // server and code, check the server, and go on to sign-in.
+    val link by container.pendingEnrollLink.collectAsState()
+    LaunchedEffect(link) {
+        link?.let {
+            server = it.server
+            code = it.code
+            error = null
+            container.pendingEnrollLink.value = null
+            continueFromServer()
+        }
+    }
+
+    fun scanQr() {
+        error = null
+        val options = GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .enableAutoZoom()
+            .build()
+        GmsBarcodeScanning.getClient(context, options).startScan()
+            .addOnSuccessListener { barcode ->
+                val parsed = EnrollLinks.parse(barcode.rawValue)
+                if (parsed != null) {
+                    container.pendingEnrollLink.value = parsed
+                } else {
+                    error = "That isn't a Budget Add a phone code. On the web, open Settings → Sign-in & people → Add a phone."
+                }
+            }
+            .addOnFailureListener {
+                error = "The scanner couldn't start. Type the server address and code instead."
+            }
     }
 
     fun submitAccount() {
@@ -181,7 +218,7 @@ fun SetupScreen(
                     Step.SERVER -> {
                         Text("Your Budget server", style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = c.ink)
                         Text(
-                            "The address you open Budget at. Scanning the QR code under Settings → Sign-in & people → Add a phone on the web fills this in.",
+                            "The address you open Budget at. Or tap Scan QR code and scan the code under Settings → Sign-in & people → Add a phone on the web.",
                             color = c.muted, fontSize = 14.sp,
                         )
                         Spacer(Modifier.height(12.dp))
@@ -195,17 +232,16 @@ fun SetupScreen(
                         )
                         Spacer(Modifier.height(12.dp))
                         Button(
-                            onClick = {
-                                val normalized = ServerUrl.normalize(server)
-                                if (normalized != null && LocalNetwork.needsPermission(context, normalized)) {
-                                    localPermission.launch(LocalNetwork.PERMISSION)
-                                } else {
-                                    checkServer()
-                                }
-                            },
+                            onClick = { continueFromServer() },
                             enabled = !busy && server.isNotBlank(),
                             modifier = Modifier.fillMaxWidth(),
                         ) { Text(if (busy) "Checking…" else "Continue") }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { scanQr() },
+                            enabled = !busy,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Scan QR code") }
                     }
 
                     Step.CODE -> {
@@ -229,7 +265,7 @@ fun SetupScreen(
                             TextButton(onClick = { step = Step.SERVER.name; error = null }) { Text("Back") }
                             Button(
                                 onClick = { step = Step.ACCOUNT.name; error = null },
-                                enabled = code.replace("-", "").trim().length == 8,
+                                enabled = CODE_SHAPE.matches(code.trim().uppercase()),
                                 modifier = Modifier.weight(1f),
                             ) { Text("Continue") }
                         }
@@ -288,3 +324,5 @@ fun SetupScreen(
         }
     }
 }
+
+private val CODE_SHAPE = Regex("^[A-Z0-9]{4}-?[A-Z0-9]{4}$")

@@ -29,8 +29,9 @@ checking this repo for updates).
 
 1. On the web, open **Settings → Sign-in & people → Add a phone**. It shows a
    one-time code and a QR code, valid for 15 minutes.
-2. Scan the QR code with the phone's camera. It opens the app with the server
-   address and code filled in. Or open the app and type both.
+2. In the app, tap **Scan QR code** and point it at the web page. It fills in
+   the server address and code. Or type both. (The phone's own camera app
+   won't open the link; scan from inside Budget.)
 3. Enter your Budget username and password.
 
 The password is used once to get this phone its own token and is not kept.

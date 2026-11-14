@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.1]
+
+- Scan the web's QR code from inside the app (Scan QR code on the first screen). Phone cameras
+  don't open `budget://` links.
+
 ## [0.1.0]
 
 - First version: add this phone with a code or QR, see this month, record payments with a confirm

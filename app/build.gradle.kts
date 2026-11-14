@@ -17,8 +17,8 @@ android {
         minSdk = 26
         targetSdk = 37
         // Bump both for every release; the in-app updater compares versionCode.
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
 
         val buildDate = SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date())
         buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")
@@ -102,6 +102,7 @@ dependencies {
     implementation(libs.androidx.material3)
 
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.play.services.code.scanner)
 
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
