@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.2]
+
+- The QR scanner is now inside the app (CameraX and ZXing, both open source), so it works without
+  Google Play services. It asks for the camera only when you tap Scan QR code.
+
 ## [0.3.1]
 
 - Update badge, as in the Kairos app: a blue dot on the More tab, an "Update available" row and a

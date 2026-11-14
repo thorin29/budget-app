@@ -20,8 +20,10 @@ room3 = "3.0.3"
 sqlite = "2.7.0"
 ksp = "2.3.6"
 
-# QR scanning through Google Play services: no camera permission, no camera code in the app.
-codeScanner = "16.1.0"
+# QR scanning inside the app, open source, no Google Play services:
+# CameraX for the camera, ZXing to read the code.
+camerax = "1.4.2"
+zxing = "3.5.3"
 
 # Networking / serialization / coroutines
 okhttp = "4.12.0"
@@ -51,7 +53,10 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 androidx-room3-runtime = { group = "androidx.room3", name = "room3-runtime", version.ref = "room3" }
 androidx-room3-compiler = { group = "androidx.room3", name = "room3-compiler", version.ref = "room3" }
 androidx-sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqlite" }
-play-services-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "codeScanner" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }

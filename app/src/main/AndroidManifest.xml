@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Android 13+: the "Update available" notification. Asked for once. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The QR scanner on the first screen. Asked for only when Scan is tapped. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:name=".BudgetApp"
@@ -44,11 +47,6 @@
                 <data android:scheme="budget" android:host="enroll" />
             </intent-filter>
         </activity>
-
-        <!-- Fetch the QR scanner screen with the app, so the first scan doesn't wait for it. -->
-        <meta-data
-            android:name="com.google.mlkit.vision.DEPENDENCIES"
-            android:value="barcode_ui" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

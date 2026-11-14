@@ -86,3 +86,10 @@ WorkManager check about every two hours plus one at launch. Budget has a
 bottom bar instead of Kairos's top bar and rail, so the dot sits on the More
 tab, which is visible on every screen. The last result is saved, so a failed
 check changes nothing; the badges clear once the newer build is installed.
+
+## QR scanner
+
+In the app, not Google's: CameraX shows the camera and ZXing reads the code,
+both open source. Google's Play-services scanner needed Play services (and
+on GrapheneOS, camera access granted to them). Budget asks for the camera
+only when Scan is tapped, and typing the address and code always works.

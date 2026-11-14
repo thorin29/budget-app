@@ -1,6 +1,9 @@
 package com.budget.app.ui.setup
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -53,9 +56,6 @@ import com.budget.app.data.remote.ApiException
 import com.budget.app.ui.common.Banner
 import com.budget.app.ui.common.Panel
 import com.budget.app.ui.theme.Budget
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
-import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -148,24 +148,28 @@ fun SetupScreen(
         }
     }
 
+    // The scanner is in the app (CameraX + ZXing), so it asks for the camera
+    // itself, only when Scan is tapped. "Only this time" is enough.
+    var scanning by remember { mutableStateOf(false) }
+    val cameraPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) scanning = true
+        else error = "Budget needs the camera to scan the code. Type the server address and code instead."
+    }
+
     fun scanQr() {
         error = null
-        val options = GmsBarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-            .enableAutoZoom()
-            .build()
-        GmsBarcodeScanning.getClient(context, options).startScan()
-            .addOnSuccessListener { barcode ->
-                val parsed = EnrollLinks.parse(barcode.rawValue)
-                if (parsed != null) {
-                    container.pendingEnrollLink.value = parsed
-                } else {
-                    error = "That isn't a Budget Add a phone code. On the web, open Settings → Sign-in & people → Add a phone."
-                }
-            }
-            .addOnFailureListener {
-                error = "The scanner couldn't start. Type the server address and code instead."
-            }
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        if (granted) scanning = true else cameraPermission.launch(Manifest.permission.CAMERA)
+    }
+
+    fun onScanned(text: String) {
+        scanning = false
+        val parsed = EnrollLinks.parse(text)
+        if (parsed != null) {
+            container.pendingEnrollLink.value = parsed
+        } else {
+            error = "That isn't a Budget Add a phone code. On the web, open Settings → Sign-in & people → Add a phone."
+        }
     }
 
     fun submitAccount() {
@@ -317,6 +321,10 @@ fun SetupScreen(
 
             error?.let { Banner(it, c.danger, c.dangerSoft) }
         }
+    }
+
+    if (scanning) {
+        QrScanner(onCode = ::onScanned, onClose = { scanning = false })
     }
 }
 

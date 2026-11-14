@@ -4,7 +4,7 @@ The phone app for [Budget](https://github.com/thorin29/budget), the self-hosted
 budget planner. It talks to your own Budget server and nothing else (apart from
 checking this repo for updates).
 
-> **Status:** v0.3.1. Needs Budget server 0.15.0 or newer.
+> **Status:** v0.3.2. Needs Budget server 0.15.0 or newer.
 
 ## What it does
 
@@ -44,8 +44,9 @@ that version. The Update screen downloads and installs it.
 1. On the web, open **Settings → Sign-in & people → Add a phone**. It shows a
    one-time code and a QR code, valid for 15 minutes.
 2. In the app, tap **Scan QR code** and point it at the web page. It fills in
-   the server address and code. Or type both. (The phone's own camera app
-   won't open the link; scan from inside Budget.)
+   the server address and code. Or type both. The scanner is built into the
+   app (no Google Play services needed) and asks for the camera when you tap
+   it; "Only this time" is enough.
 3. Enter your Budget username and password.
 
 The password is used once to get this phone its own token and is not kept.
