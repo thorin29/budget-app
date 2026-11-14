@@ -68,3 +68,11 @@ jobs:
           name: budget-release-apk
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      # Room's schema for this database version. Download it and commit it to
+      # app/schemas once per schema version; migrations are built from it.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: room-schemas
+          path: app/schemas/
+          if-no-files-found: warn
