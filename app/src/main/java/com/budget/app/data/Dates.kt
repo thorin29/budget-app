@@ -39,6 +39,21 @@ object Dates {
         return ym.atDay(dueDay.coerceIn(1, ym.lengthOfMonth()))
     }
 
+    /** An instant ("2026-11-17T14:17:00.000Z") as "8:17 AM" today, "Yesterday 8:17 AM", or "Nov 14, 8:17 AM", in the phone's zone. */
+    fun stamp(iso: String?, now: java.time.ZonedDateTime = java.time.ZonedDateTime.now()): String? {
+        if (iso.isNullOrBlank()) return null
+        val at = runCatching { java.time.Instant.parse(iso).atZone(now.zone) }.getOrNull() ?: return null
+        val time = at.format(TIME)
+        val days = java.time.temporal.ChronoUnit.DAYS.between(at.toLocalDate(), now.toLocalDate())
+        return when (days) {
+            0L -> time
+            1L -> "yesterday $time"
+            else -> "${at.format(SHORT)}, $time"
+        }
+    }
+
+    private val TIME = DateTimeFormatter.ofPattern("h:mm a", Locale.US)
+
     fun isValidDay(text: String): Boolean =
         Regex("^\\d{4}-\\d{2}-\\d{2}$").matches(text) && runCatching { LocalDate.parse(text) }.isSuccess
 }

@@ -9,6 +9,7 @@ import com.budget.app.data.remote.CardsResponse
 import com.budget.app.data.remote.CategoryDetailResponse
 import com.budget.app.data.remote.InsightsResponse
 import com.budget.app.data.remote.LooksPaidDto
+import com.budget.app.data.remote.RepeatDto
 import com.budget.app.data.remote.ReviewResponse
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,10 @@ data class ExtrasUi(
     val insightsMonth: String? = null,
     val category: CategoryDetailResponse? = null,
     val busy: Boolean = false,
+    /** Reading the bank now, from Today's balance. */
+    val bankSyncing: Boolean = false,
+    /** What the last "read the bank now" found. */
+    val bankNote: String? = null,
     /** A short note after an action ("Recorded.") or why it failed. */
     val message: String? = null,
 )
@@ -72,6 +77,34 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
         act("Recorded.", onDone) { c.api.confirmReview(item, amountCents, paidOn, UUID.randomUUID().toString()) }
 
     fun dismiss(item: LooksPaidDto) = act("Won't suggest that charge for ${item.billName} again.") { c.api.dismissReview(item) }
+
+    fun addRepeat(item: RepeatDto) = act("Added ${item.merchant} as a monthly bill. Edit it on Plan if anything's off.") { c.api.repeat(item.key, "add") }
+
+    fun dismissRepeat(item: RepeatDto) = act("Won't suggest ${item.merchant} as a bill again.") { c.api.repeat(item.key, "dismiss") }
+
+    /** Reads the bank now; [onDone] reloads the month so the new balance shows. */
+    fun syncBank(onDone: () -> Unit) {
+        if (_ui.value.bankSyncing) return
+        viewModelScope.launch {
+            _ui.update { it.copy(bankSyncing = true, bankNote = null) }
+            val note = try {
+                val r = c.api.syncBank()
+                when {
+                    r.lastError != null -> r.lastError
+                    !r.ran -> "The bank was read a few minutes ago. Nothing newer yet."
+                    r.added > 0 -> "${r.added} new from the bank."
+                    else -> "Up to date. Nothing new from the bank yet."
+                }
+            } catch (e: ApiException) {
+                e.message ?: "The server refused that."
+            } catch (e: IOException) {
+                "You're offline. Try again when you're back."
+            }
+            _ui.update { it.copy(bankSyncing = false, bankNote = note) }
+            onDone()
+            load()
+        }
+    }
 
     fun undo(item: AutoRecordedDto) = act("Removed. That charge won't be used for ${item.name} again.") { c.api.undoAuto(item) }
 

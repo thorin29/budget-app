@@ -67,6 +67,7 @@ fun TodayScreen(
     onOpenReview: () -> Unit = {},
     onOpenCards: () -> Unit = {},
     onOpenInsights: () -> Unit = {},
+    onRefreshBank: () -> Unit = {},
 ) {
     val c = Budget.colors
     val ui by vm.ui.collectAsState()
@@ -122,11 +123,13 @@ fun TodayScreen(
 
             if (view != null) item {
                 // As on the web: the bills account's balance, then what's left after each half's bills.
+                // A balance the bank keeps current isn't typed over; it can be read again instead.
+                val fromBank = view.billsBalanceFromBank
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .background(c.accent, RoundedCornerShape(24.dp))
-                        .clickable { onEditBalance(view) }
+                        .then(if (fromBank) Modifier else Modifier.clickable { onEditBalance(view) })
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
@@ -136,16 +139,31 @@ fun TodayScreen(
                             color = c.onAccent.copy(alpha = 0.9f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                             maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
                         )
-                        PhIcon(Ph.PENCIL, null, c.onAccent, size = 18.dp)
+                        if (fromBank) {
+                            Box(
+                                Modifier.size(36.dp).clickable(enabled = !extras.bankSyncing, onClick = onRefreshBank),
+                                contentAlignment = Alignment.Center,
+                            ) { PhIcon(Ph.SYNC, "Read the bank now", c.onAccent.copy(alpha = if (extras.bankSyncing) 0.5f else 1f), size = 20.dp) }
+                        } else {
+                            PhIcon(Ph.PENCIL, null, c.onAccent, size = 18.dp)
+                        }
                     }
                     Text(
                         view.billsBalanceCents?.let { Money.format(it) } ?: "—",
                         color = c.onAccent, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp,
                     )
                     Text(
-                        if (view.billsBalanceCents == null) "Add the balance to see what's left after bills." else "Tap to update it if the bank hasn't yet.",
+                        when {
+                            fromBank && extras.bankSyncing -> "Reading the bank…"
+                            fromBank -> listOfNotNull("From the bank", (view.bankSyncedAt ?: view.billsBalanceAsOf)?.let { Dates.stamp(it) }?.let { "updated $it" }).joinToString(" · ")
+                            view.billsBalanceCents == null -> "Add the balance to see what's left after bills."
+                            else -> "Tap to update it if the bank hasn't yet."
+                        },
                         color = c.onAccent.copy(alpha = 0.9f), fontSize = 14.sp,
                     )
+                    if (fromBank) extras.bankNote?.let { note ->
+                        Text(note, color = c.onAccent.copy(alpha = 0.9f), fontSize = 13.sp)
+                    }
                 }
             }
 

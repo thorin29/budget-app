@@ -186,6 +186,7 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
                         onOpenReview = { showReview = true },
                         onOpenCards = { tab = Tab.CARDS },
                         onOpenInsights = { tab = Tab.INSIGHTS },
+                        onRefreshBank = { extrasVm.syncBank(onDone = { todayVm.load() }) },
                     )
                 }
                 Tab.MONTH -> MonthScreen(monthVm, onRecord = { record = RecordRequest(monthVm, it) })

@@ -41,6 +41,7 @@ import com.budget.app.data.Dates
 import com.budget.app.data.Money
 import com.budget.app.data.remote.AutoRecordedDto
 import com.budget.app.data.remote.LooksPaidDto
+import com.budget.app.data.remote.RepeatDto
 import com.budget.app.ui.common.Banner
 import com.budget.app.ui.common.Panel
 import com.budget.app.ui.common.SectionLabel
@@ -52,7 +53,8 @@ import com.budget.app.ui.today.ExtrasViewModel
 /**
  * What the bank feed noticed: charges that look like bill payments (each waits
  * for Review and record, then Confirm) and payments it recorded on its own
- * (each with Undo). Repeating charges are handled on the web.
+ * (each with Undo, listed for ten days), and charges that repeat like a bill
+ * (Add as bill or Not a bill).
  */
 @Composable
 fun ReviewScreen(vm: ExtrasViewModel, onBack: () -> Unit) {
@@ -86,12 +88,18 @@ fun ReviewScreen(vm: ExtrasViewModel, onBack: () -> Unit) {
         if (review == null) {
             item { Text("Nothing to show. The Review list needs the server to be reachable.", color = c.muted, modifier = Modifier.padding(4.dp)) }
         } else {
-            if (review.looksPaid.isEmpty() && review.recorded.isEmpty()) {
-                item { Text("All caught up. New suggestions appear after each morning's bank sync.", color = c.muted, modifier = Modifier.padding(4.dp)) }
+            if (review.looksPaid.isEmpty() && review.recorded.isEmpty() && review.repeats == 0) {
+                item { Text("All caught up. New suggestions appear after each bank sync.", color = c.muted, modifier = Modifier.padding(4.dp)) }
             }
 
             if (review.recorded.isNotEmpty()) {
                 item { SectionLabel("Done for you", c.muted) }
+                item {
+                    Text(
+                        "Payments the bank showed for a bill, recorded on their own. Nothing to do unless one is wrong. Each stays here for ten days.",
+                        color = c.muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 4.dp),
+                    )
+                }
                 items(review.recorded, key = { "auto-${it.lineItemId}-${it.year}-${it.month}" }) { r ->
                     AutoRow(r, busy = ui.busy, onUndo = { vm.undo(r) })
                 }
@@ -112,12 +120,23 @@ fun ReviewScreen(vm: ExtrasViewModel, onBack: () -> Unit) {
 
             if (review.looksPaid.isNotEmpty()) {
                 item { SectionLabel("Bills that look paid", c.muted) }
+                item {
+                    Text(
+                        "Recording one also ties the merchant to the bill, so next time an exact match is recorded for you.",
+                        color = c.muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 4.dp),
+                    )
+                }
                 items(review.looksPaid, key = { "match-${it.lineItemId}-${it.txnId}" }) { l ->
                     LooksPaidRow(l, busy = ui.busy, onReview = { confirming = l }, onNotThis = { vm.dismiss(l) })
                 }
             }
 
-            if (review.repeats > 0) {
+            if (review.repeatList.isNotEmpty()) {
+                item { SectionLabel("Repeating charges", c.muted) }
+                items(review.repeatList, key = { "repeat-${it.key}" }) { r ->
+                    RepeatRow(r, busy = ui.busy, onAdd = { vm.addRepeat(r) }, onDismiss = { vm.dismissRepeat(r) })
+                }
+            } else if (review.repeats > 0) {
                 item {
                     Text(
                         "${review.repeats} repeating charge${if (review.repeats == 1) "" else "s"} could become bills. Add or dismiss them on the web.",
@@ -155,6 +174,44 @@ private fun AutoRow(r: AutoRecordedDto, busy: Boolean, onUndo: () -> Unit) {
             TextButton(onClick = onUndo, enabled = !busy) { Text("Undo", color = c.accent, fontWeight = FontWeight.Bold) }
         }
     }
+}
+
+@Composable
+private fun RepeatRow(r: RepeatDto, busy: Boolean, onAdd: () -> Unit, onDismiss: () -> Unit) {
+    val c = Budget.colors
+    Panel {
+        Row(verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text(r.merchant, color = c.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "${r.months} months running, around the ${ordinal(r.typicalDay)}",
+                    color = c.muted, fontSize = 13.sp,
+                )
+            }
+            Text(Money.format(r.typicalCents), color = c.ink, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+        }
+        Text(
+            listOfNotNull(r.account.takeIf { it.isNotBlank() }, Dates.short(r.lastOn)?.let { "last $it" }).joinToString(" · "),
+            color = c.muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 8.dp).fillMaxWidth().background(c.raised, RoundedCornerShape(10.dp)).padding(horizontal = 10.dp, vertical = 8.dp),
+        )
+        Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = onAdd,
+                enabled = !busy,
+                colors = ButtonDefaults.buttonColors(containerColor = c.accent, contentColor = c.onAccent),
+            ) { Text("Add as bill", fontWeight = FontWeight.Bold) }
+            OutlinedButton(onClick = onDismiss, enabled = !busy) { Text("Not a bill", color = c.ink) }
+        }
+    }
+}
+
+private fun ordinal(n: Int): String = n.toString() + when {
+    n % 100 in 11..13 -> "th"
+    n % 10 == 1 -> "st"
+    n % 10 == 2 -> "nd"
+    n % 10 == 3 -> "rd"
+    else -> "th"
 }
 
 @Composable

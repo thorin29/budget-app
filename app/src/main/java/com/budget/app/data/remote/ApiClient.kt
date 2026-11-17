@@ -172,6 +172,18 @@ class ApiClient(
         send("POST", "/api/v1/review/undo-auto", body = body)
     }
 
+    /** A repeating charge: [action] is "add" (make it a monthly bill) or "dismiss". */
+    suspend fun repeat(key: String, action: String) {
+        val body = buildJsonObject {
+            put("key", key)
+            put("action", action)
+        }.toString()
+        send("POST", "/api/v1/review/repeat", body = body)
+    }
+
+    /** Asks the server to read the bank now (skipped when it just did). */
+    suspend fun syncBank(): BankSyncResponse = decode(send("POST", "/api/v1/bank/sync", body = "{}"))
+
     // ------------------------------------------------------------ plumbing
 
     private inline fun <reified T> decode(text: String): T = json.decodeFromString(text)

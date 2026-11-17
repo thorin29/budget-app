@@ -92,6 +92,10 @@ data class MonthView(
     val incomeReceivedCents: Long = 0,
     val billsBalanceCents: Long? = null,
     val billsBalanceFrom: YearMonthRef? = null,
+    /** Server 0.39+: when the balance was last set, and whether the bank keeps it current. */
+    val billsBalanceAsOf: String? = null,
+    val billsBalanceFromBank: Boolean = false,
+    val bankSyncedAt: String? = null,
     val billsAccountId: String? = null,
     val billsAccountName: String? = null,
     val transferAfterFirstCents: Long? = null,
@@ -212,9 +216,25 @@ data class AutoRecordedDto(
 data class DueDayMovedDto(val lineItemId: String, val name: String = "", val from: Int? = null, val to: Int? = null)
 
 @Serializable
+data class RepeatDto(
+    val key: String,
+    val merchant: String = "",
+    val typicalCents: Long = 0,
+    val typicalDay: Int = 1,
+    val months: Int = 0,
+    val lastOn: String = "",
+    val account: String = "",
+)
+
+@Serializable
+data class BankSyncResponse(val ran: Boolean = false, val added: Int = 0, val lastSuccessAt: String? = null, val lastError: String? = null)
+
+@Serializable
 data class ReviewResponse(
     val looksPaid: List<LooksPaidDto> = emptyList(),
     val repeats: Int = 0,
+    /** Server 0.39+: the repeating charges themselves. */
+    val repeatList: List<RepeatDto> = emptyList(),
     val recorded: List<AutoRecordedDto> = emptyList(),
     val moved: List<DueDayMovedDto> = emptyList(),
     val count: Int = 0,

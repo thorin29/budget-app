@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.0]
+
+Needs server 0.39.
+
+- Today: when the bills balance comes from the bank, it shows when the bank was last read and a
+  button to read it again, in place of tap to edit.
+- Review: repeating charges can be added as bills or dismissed here, not only on the web. Short
+  notes explain "Done for you" and what recording a match does.
+
 ## [0.12.0]
 
 - "Paying off" on Insights: bills paying off a balance, with what's left and when each ends.
