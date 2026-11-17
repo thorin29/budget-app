@@ -24,6 +24,9 @@ data class EnrollResponse(val token: String, val expiresAt: String = "", val dev
 data class UserInfo(val id: String, val username: String)
 
 @Serializable
+data class JoinResponse(val token: String, val expiresAt: String = "", val device: DeviceInfo, val user: UserInfo)
+
+@Serializable
 data class MeResponse(val user: UserInfo, val device: DeviceInfo)
 
 @Serializable

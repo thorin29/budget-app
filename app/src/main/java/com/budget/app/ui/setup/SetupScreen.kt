@@ -59,10 +59,11 @@ import com.budget.app.ui.theme.Budget
 import kotlinx.coroutines.launch
 import java.io.IOException
 
-private enum class Step { SERVER, CODE, ACCOUNT }
+private enum class Step { SERVER, CODE, ACCOUNT, NEW_ACCOUNT }
 
 /**
- * Adding this phone, in three short steps:
+ * Adding this phone, in three short steps (or, from the second person's invite,
+ * the server and then a new username and password):
  *  1. the server address (filled in by the web's QR code),
  *  2. the one-time code from Settings → Sign-in & people → Add a phone (also from the QR),
  *  3. username and password.
@@ -88,6 +89,9 @@ fun SetupScreen(
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var serverVersion by rememberSaveable { mutableStateOf<String?>(null) }
+    // Scanned the second person's invite: create an account instead of signing in.
+    var joining by rememberSaveable { mutableStateOf(false) }
+    var confirm by remember { mutableStateOf("") }
 
     fun explain(e: Exception): String = when (e) {
         is ApiException -> when {
@@ -113,7 +117,11 @@ fun SetupScreen(
             try {
                 serverVersion = container.session.checkServer(normalized)
                 // A code already filled in (from the QR) goes straight to sign-in.
-                step = if (CODE_SHAPE.matches(code.trim().uppercase())) Step.ACCOUNT.name else Step.CODE.name
+                step = when {
+                    joining -> Step.NEW_ACCOUNT.name
+                    CODE_SHAPE.matches(code.trim().uppercase()) -> Step.ACCOUNT.name
+                    else -> Step.CODE.name
+                }
             } catch (e: Exception) {
                 error = explain(e)
             } finally {
@@ -142,6 +150,7 @@ fun SetupScreen(
         link?.let {
             server = it.server
             code = it.code
+            joining = it.join
             error = null
             container.pendingEnrollLink.value = null
             continueFromServer()
@@ -168,7 +177,7 @@ fun SetupScreen(
         if (parsed != null) {
             container.pendingEnrollLink.value = parsed
         } else {
-            error = "That isn't a Budget Add a phone code. On the web, open Settings → Sign-in & people → Add a phone."
+            error = "That isn't a Budget code. On the web, open Settings → Sign-in & people: Add a phone for your own account, or Create a one-time code for a second person."
         }
     }
 
@@ -184,6 +193,23 @@ fun SetupScreen(
                 error = explain(e)
                 // The code is single-use; a refused one usually means make a new one.
                 if (e is ApiException && e.message?.contains("code", ignoreCase = true) == true) step = Step.CODE.name
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun submitNewAccount() {
+        busy = true
+        error = null
+        scope.launch {
+            try {
+                container.session.join(server, code.trim(), username, password, deviceName.trim().ifEmpty { "Phone" })
+                password = ""
+                confirm = ""
+                container.sync.flush()
+            } catch (e: Exception) {
+                error = explain(e)
             } finally {
                 busy = false
             }
@@ -217,7 +243,7 @@ fun SetupScreen(
                     Step.SERVER -> {
                         Text("Your Budget server", style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = c.ink)
                         Text(
-                            "The address you open Budget at. Or tap Scan QR code and scan the code under Settings → Sign-in & people → Add a phone on the web.",
+                            "The address you open Budget at. Or tap Scan QR code: on the web, Settings → Sign-in & people shows a code under Add a phone (your own account) or for inviting a second person (a new account).",
                             color = c.muted, fontSize = 14.sp,
                         )
                         Spacer(Modifier.height(12.dp))
@@ -267,6 +293,72 @@ fun SetupScreen(
                                 enabled = CODE_SHAPE.matches(code.trim().uppercase()),
                                 modifier = Modifier.weight(1f),
                             ) { Text("Continue") }
+                        }
+                    }
+
+                    Step.NEW_ACCOUNT -> {
+                        Text("Create your account", style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = c.ink)
+                        Text(
+                            "You've been invited to this household's Budget. Choose a username and password of your own; you'll use them on the web too. The password isn't kept on the phone.",
+                            color = c.muted, fontSize = 14.sp,
+                        )
+                        serverVersion?.let { Text("Connected to Budget $it at $server", color = c.accentText, fontSize = 13.sp) }
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = username,
+                            onValueChange = { username = it },
+                            label = { Text("Username") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false, imeAction = ImeAction.Next),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Password (10 characters or more)") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = confirm,
+                            onValueChange = { confirm = it },
+                            label = { Text("Password again") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            isError = confirm.isNotEmpty() && confirm != password,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = deviceName,
+                            onValueChange = { deviceName = it.take(60) },
+                            label = { Text("Name for this phone") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = {
+                                step = Step.SERVER.name
+                                joining = false
+                                error = null
+                            }) { Text("Back") }
+                            Button(
+                                onClick = { submitNewAccount() },
+                                enabled = !busy && username.isNotBlank() && password.length >= 10 && confirm == password,
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                if (busy) {
+                                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = androidx.compose.ui.graphics.Color.White)
+                                } else {
+                                    Text("Create account")
+                                }
+                            }
                         }
                     }
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.0]
+
+Needs server 0.35 for the invite QR.
+
+- Second person setup from a QR code: on the first screen, Scan QR code and scan the invite from
+  the web (Settings → Sign-in & people). The app checks the server, asks for a username and
+  password of their own, creates the account and signs the phone in. A `budget://join` link
+  opens the same way.
+
 ## [0.10.0]
 
 Needs server 0.34.

@@ -27,3 +27,14 @@ class WeeklyTest {
         assertNull(WeeklyLogic.message(InsightsResponse()))
     }
 }
+
+class JoinLinkTest {
+    @Test fun readsAnInvite() {
+        val link = com.budget.app.data.EnrollLinks.parse("budget://join?server=https%3A%2F%2Fbudget.example.com&code=aB3_x-Yz9QwE")!!
+        assertEquals("https://budget.example.com", link.server)
+        assertEquals("aB3_x-Yz9QwE", link.code)
+        assertEquals(true, link.join)
+        assertEquals(false, com.budget.app.data.EnrollLinks.parse("budget://enroll?server=https%3A%2F%2Fbudget.example.com&code=abcd-efgh")!!.join)
+        assertNull(com.budget.app.data.EnrollLinks.parse("budget://join?server=https%3A%2F%2Fbudget.example.com&code=a b"))
+    }
+}

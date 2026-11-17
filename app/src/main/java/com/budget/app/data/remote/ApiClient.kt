@@ -64,6 +64,17 @@ class ApiClient(
         return decode(send("POST", "/api/v1/auth/enroll", body = body, server = server, auth = false))
     }
 
+    /** The second person's account from an invite code, and this phone's token. */
+    suspend fun join(server: String, code: String, username: String, password: String, name: String): JoinResponse {
+        val body = buildJsonObject {
+            put("code", code)
+            put("username", username)
+            put("password", password)
+            put("name", name)
+        }.toString()
+        return decode(send("POST", "/api/v1/auth/join", body = body, server = server, auth = false))
+    }
+
     suspend fun me(): MeResponse = decode(send("GET", "/api/v1/auth/me"))
 
     suspend fun refresh(): RefreshResponse = decode(send("POST", "/api/v1/auth/refresh", body = "{}"))

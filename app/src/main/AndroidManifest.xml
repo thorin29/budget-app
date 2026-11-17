@@ -36,6 +36,9 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- The second person's invite from the web's QR code works the same way:
+                 budget://join?server=https://…&code=…, then a username and
+                 password of their own create the account on the phone. -->
             <!-- Add-a-phone link from the web's QR code:
                  budget://enroll?server=https://…&code=ABCD-EFGH
                  It carries the server address and a one-time code, nothing else;
@@ -45,6 +48,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="budget" android:host="enroll" />
+                <data android:scheme="budget" android:host="join" />
             </intent-filter>
         </activity>
 

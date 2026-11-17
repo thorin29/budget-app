@@ -19,8 +19,8 @@ android {
         minSdk = 26
         targetSdk = 37
         // Bump both for every release; the in-app updater compares versionCode.
-        versionCode = 16
-        versionName = "0.10.0"
+        versionCode = 17
+        versionName = "0.11.0"
 
         val buildDate = SimpleDateFormat("MMM d, yyyy", Locale.US).format(Date())
         buildConfigField("String", "BUILD_DATE", "\"$buildDate\"")

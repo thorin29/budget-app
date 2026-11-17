@@ -70,6 +70,18 @@ class Session(
         _state.value = SessionState.SignedIn(server, username.trim().lowercase(), enrolled.device.name)
     }
 
+    /** The second person: invite code + a username and password of their own → their account, signed in on this phone. */
+    suspend fun join(server: String, code: String, username: String, password: String, deviceName: String) {
+        val joined = api.join(server, code, username.trim().lowercase(), password, deviceName)
+        local.clearAll()
+        tokens.save(joined.token)
+        settings.set(Settings.SERVER, server)
+        settings.set(Settings.USERNAME, joined.user.username)
+        settings.set(Settings.DEVICE_NAME, joined.device.name)
+        this.server = server
+        _state.value = SessionState.SignedIn(server, joined.user.username, joined.device.name)
+    }
+
     /**
      * Any call came back 401. Confirm with /auth/me before giving up, so a
      * single odd response can't sign the phone out.
