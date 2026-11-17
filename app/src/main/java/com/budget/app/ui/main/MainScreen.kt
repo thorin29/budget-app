@@ -201,6 +201,7 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
                             extrasVm.openCategory(it)
                             showCategory = true
                         },
+                        onEnvelopesByMonth = { extrasVm.showEnvelopesByMonth(it) },
                     )
                 }
                 Tab.MORE -> when {

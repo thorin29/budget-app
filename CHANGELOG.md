@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.15.0]
+
+Needs server 0.41.
+
+- The headline is now everything left across all envelopes (or how far over), with the flexible part
+  under it, so it matches the envelopes below.
+- "Can I afford it?" is replaced by a summary: what's left and over in essentials, planned and
+  flexible, and in total.
+- Insights can show the envelopes for this pay period or this month.
+- Bills come from what's due before the next payday; Amazon charges count by what was in each order.
+
 ## [0.14.0]
 
 Needs server 0.40.

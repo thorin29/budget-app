@@ -26,6 +26,8 @@ data class ExtrasUi(
     val insights: InsightsResponse? = null,
     /** Null on a server older than 0.40. */
     val envelopes: EnvelopesResponse? = null,
+    /** Insights shows the envelopes for the calendar month instead of the pay period. */
+    val envelopesByMonth: Boolean = false,
     /** The month Insights shows, YYYY-MM; null for the month in progress. */
     val insightsMonth: String? = null,
     val category: CategoryDetailResponse? = null,
@@ -52,10 +54,18 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
             val cards = async { runCatching { c.api.cards() }.getOrNull() }
             val review = async { runCatching { c.api.review() }.getOrNull() }
             val insights = async { runCatching { c.api.insights(_ui.value.insightsMonth) }.getOrNull() }
-            val envelopes = async { runCatching { c.api.envelopes() }.getOrNull() }
+            val envelopes = async { runCatching { c.api.envelopes(_ui.value.envelopesByMonth) }.getOrNull() }
             val (cr, rr, ir) = Triple(cards.await(), review.await(), insights.await())
             val er = envelopes.await()
             _ui.update { it.copy(cards = cr ?: it.cards, review = rr ?: it.review, insights = ir ?: it.insights, envelopes = er ?: it.envelopes) }
+        }
+    }
+
+    /** The envelopes by pay period, or by calendar month. */
+    fun showEnvelopesByMonth(month: Boolean) {
+        _ui.update { it.copy(envelopesByMonth = month) }
+        viewModelScope.launch {
+            runCatching { c.api.envelopes(month) }.getOrNull()?.let { r -> _ui.update { it.copy(envelopes = r) } }
         }
     }
 

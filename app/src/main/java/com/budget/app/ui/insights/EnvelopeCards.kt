@@ -2,7 +2,6 @@ package com.budget.app.ui.insights
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,10 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,12 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.budget.app.data.Dates
-import com.budget.app.data.EnvelopeLogic
 import com.budget.app.data.Money
 import com.budget.app.data.remote.EnvelopeDto
 import com.budget.app.data.remote.EnvelopesResponse
@@ -48,10 +42,10 @@ private val OK = Color(0xFF1F8A4C)
 
 private fun until(v: EnvelopesResponse): String {
     val next = Dates.short(v.period.next) ?: v.period.next
-    return if (v.period.byPayday) "until payday, $next" else "until $next"
+    return if (v.period.byPayday && v.period.view != "month") "until payday, $next" else "until $next"
 }
 
-/** The headline: flexible money left, colored by how things stand. Used on Today and Insights. */
+/** The headline: everything left in the envelopes (or how far over), colored by how things stand. Used on Today and Insights. */
 @Composable
 fun EnvelopeHero(v: EnvelopesResponse, modifier: Modifier = Modifier) {
     val c = Budget.colors
@@ -60,20 +54,38 @@ fun EnvelopeHero(v: EnvelopesResponse, modifier: Modifier = Modifier) {
         "low" -> c.warnSoft to c.warn
         else -> c.dangerSoft to c.danger
     }
+    // Servers before 0.41 only send the flexible figure.
+    val left = v.allLeftCents ?: v.flexibleLeftCents
     Column(
         modifier.fillMaxWidth().background(bg, RoundedCornerShape(24.dp)).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("Flexible money left ${until(v)}", color = fg.copy(alpha = 0.92f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-        Text(Money.whole(maxOf(0L, v.flexibleLeftCents)), color = fg, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp)
+        Text("${if (left < 0) "Over" else "Left to spend"} ${until(v)}", color = fg.copy(alpha = 0.92f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(Money.whole(kotlin.math.abs(left)), color = fg, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp)
         Text(
-            when {
-                v.flexibleLeftCents > 0 -> "About ${Money.whole(v.perDayCents)} a day for ${v.period.daysLeft} more day${if (v.period.daysLeft == 1) "" else "s"}"
-                v.shortCents > 0 -> "${Money.whole(v.shortCents)} past what this pay period had"
-                else -> "Nothing left to spend"
+            if (left > 0) {
+                "About ${Money.whole(v.perDayCents)} a day for ${v.period.daysLeft} more day${if (v.period.daysLeft == 1) "" else "s"} · ${Money.whole(maxOf(0L, v.flexibleLeftCents))} of it flexible"
+            } else {
+                "Across every envelope"
             },
             color = fg.copy(alpha = 0.92f), fontSize = 14.sp,
         )
+    }
+}
+
+/** Pay period or calendar month. */
+@Composable
+fun EnvelopeViewToggle(byMonth: Boolean, onChange: (Boolean) -> Unit) {
+    val c = Budget.colors
+    Row(Modifier.background(c.raised, RoundedCornerShape(14.dp)).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        listOf(false to "This pay period", true to "This month").forEach { (month, label) ->
+            val on = month == byMonth
+            Text(
+                label,
+                color = if (on) c.ink else c.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.background(if (on) c.surface else Color.Transparent, RoundedCornerShape(10.dp)).clickable { onChange(month) }.padding(horizontal = 12.dp, vertical = 7.dp),
+            )
+        }
     }
 }
 
@@ -126,12 +138,12 @@ fun PaycheckStepsCard(v: EnvelopesResponse) {
     val each = if (v.period.byPayday) "payday" else "month"
     Panel {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(if (v.period.byPayday) "Where each paycheck goes" else "Where each month's pay goes", color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text(if (v.period.view == "month" || !v.period.byPayday) "This month's pay" else "This paycheck", color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             Text("${Money.whole(v.incomeCents)} in", color = c.muted, fontSize = 13.sp)
         }
-        Step(1, "Bills", v.billsCents, "An equal share of the plan's bills, set aside each $each")
+        Step(1, "Bills", v.billsCents, if (v.basis == "due") "Bills due by ${Dates.short(v.period.next) ?: v.period.next}" else "A share of the plan's bills")
         Step(2, "Essentials", v.essentialCents, "Food, fuel, medical and the like")
-        Step(3, "Planned", v.plannedCents, "Giving and save-ups")
+        Step(3, "Planned", v.plannedCents, "Giving, sports and other planned spending")
         val owed = d.balanceCents
         val done = d.doneOn
         val debtNote = if (owed == null) {
@@ -139,7 +151,7 @@ fun PaycheckStepsCard(v: EnvelopesResponse) {
         } else if (done == null) {
             "${Money.whole(owed)} owed. Nothing is going to it yet."
         } else {
-            "${Money.whole(owed)} owed · clears ${Dates.monthYear(done) ?: done} at this rate"
+            "${Money.whole(owed)} owed${if (d.source == "minimum") " · about the minimum" else ""} · clears ${Dates.monthYear(done) ?: done} at this rate"
         }
         Step(4, "Debt payoff", d.perPeriodCents, debtNote)
         Step(5, "Flexible", v.flexibleCents, "What's left, shared by the flexible envelopes")
@@ -222,7 +234,7 @@ fun EnvelopeTierCard(v: EnvelopesResponse, tier: String, onOpenCategory: (String
     if (rows.isEmpty()) return
     val (title, note) = when (tier) {
         "ESSENTIAL" -> "Essentials" to "Protected. What isn't used stays in the envelope."
-        "PLANNED" -> "Planned" to "Giving, and save-ups for costs that come in lumps."
+        "PLANNED" -> "Planned" to "Giving, sports and other spending you plan for."
         else -> "Flexible" to "One shared pot. An envelope that runs over takes from the others."
     }
     val daysShare = if (v.period.days > 0) (v.period.days - v.period.daysLeft).toFloat() / v.period.days else 0f
@@ -239,69 +251,32 @@ fun EnvelopeTierCard(v: EnvelopesResponse, tier: String, onOpenCategory: (String
     }
 }
 
-/** Type an amount, pick an envelope, and see what the purchase would do. Nothing is saved. */
+/** What's left in every envelope, added up, and what's over. */
 @Composable
-fun AffordCard(v: EnvelopesResponse) {
+fun EnvelopeSummaryCard(v: EnvelopesResponse) {
     val c = Budget.colors
-    val spendable = v.groups.filter { !it.saveUp }
-    if (spendable.isEmpty()) return
-    var amount by rememberSaveable { mutableStateOf("") }
-    var picked by rememberSaveable { mutableStateOf((spendable.firstOrNull { it.tier == "FLEXIBLE" } ?: spendable.first()).id) }
-    val cents = EnvelopeLogic.parseDollars(amount)
+    if (v.byTier.isEmpty()) return
     Panel {
-        Text("Can I afford it?", color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Text("Nothing is saved. It shows what a purchase would do to this pay period.", color = c.muted, fontSize = 12.sp)
-        OutlinedTextField(
-            value = amount,
-            onValueChange = { amount = it },
-            label = { Text("Amount") },
-            prefix = { Text("$") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        )
-        Row(Modifier.padding(top = 8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            spendable.forEach { g ->
-                val on = g.id == picked
-                Text(
-                    g.name,
-                    color = if (on) c.onAccent else c.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.background(if (on) c.accent else c.raised, RoundedCornerShape(50)).clickable { picked = g.id }.padding(horizontal = 12.dp, vertical = 7.dp),
-                )
+        Text("Summary", color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text("What's left in every envelope, added up.", color = c.muted, fontSize = 12.sp)
+        listOf("ESSENTIAL" to "Essentials", "PLANNED" to "Planned", "FLEXIBLE" to "Flexible").forEach { (tier, label) ->
+            val t = v.byTier[tier] ?: return@forEach
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(label, color = c.ink, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                Text("${Money.whole(t.leftCents)} left", color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                if (t.overCents > 0) Text("  ${Money.whole(t.overCents)} over", color = c.danger, fontSize = 13.sp)
             }
         }
-        if (cents != null) {
-            val before = v.groups.associateBy { it.id }
-            val r = EnvelopeLogic.share(v.groups, picked, cents)
-            val target = r.rows.firstOrNull { it.id == picked }
-            val givers = r.rows.filter { it.gaveCents > (before[it.id]?.gaveCents ?: 0) }
-            val more = r.shortCents - v.shortCents
-            val (text, fg, bg) = when {
-                more > 0 -> Triple("No. It's ${Money.whole(more)} more than the flexible money left.", c.danger, c.dangerSoft)
-                givers.isNotEmpty() -> Triple("Yes, but other envelopes give up money for it.", c.warn, c.warnSoft)
-                else -> Triple("Yes. It fits in the envelope.", if (c.dark) Color(0xFF7BD9A3) else OK, if (c.dark) Color(0xFF0F3324) else Color(0xFFDCFAE6))
+        if (v.allOverCents > 0) {
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Text("Over, with nothing left to cover it", color = c.danger, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                Text(Money.whole(v.allOverCents), color = c.danger, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
-            Text(text, color = fg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 10.dp).fillMaxWidth().background(bg, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 8.dp))
-            if (target != null) {
-                Row(Modifier.padding(top = 8.dp)) {
-                    Text(target.name, color = c.ink, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                    Text(
-                        "${Money.whole(before[picked]?.leftCents ?: 0)} left → " + if (target.overCents > 0) "${Money.whole(target.overCents)} over" else "${Money.whole(target.leftCents)} left",
-                        color = if (target.overCents > 0) c.danger else c.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-            givers.forEach { g ->
-                Row(Modifier.padding(top = 4.dp)) {
-                    Text("${g.name} gives up", color = c.ink, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                    Text(Money.whole(g.gaveCents - (before[g.id]?.gaveCents ?: 0)), color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-            Row(Modifier.padding(top = 8.dp)) {
-                Text("Flexible money left after", color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Text(Money.whole(maxOf(0L, r.flexibleLeftCents)), color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            }
-            Text("Bills, essentials and the debt payment are unchanged.", color = c.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
+        }
+        val total = v.allLeftCents ?: 0
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp)) {
+            Text(if (total < 0) "Over in total" else "Left in total", color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text(Money.whole(kotlin.math.abs(total)), color = if (total < 0) c.danger else c.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
     }
 }

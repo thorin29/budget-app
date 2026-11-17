@@ -63,7 +63,7 @@ private fun monthShort(year: Int, month: Int) = YearMonth.of(year, month).format
 
 /** The Insights tab, as on the web: totals, pace, payoff, suggestions, charts, categories and more. */
 @Composable
-fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCategory: (String) -> Unit = {}) {
+fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCategory: (String) -> Unit = {}, onEnvelopesByMonth: (Boolean) -> Unit = {}) {
     val c = Budget.colors
     val s = extras.insights
     LazyColumn(
@@ -88,6 +88,7 @@ fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCate
         // Server 0.40+: the envelopes for this pay period lead, in place of the budget cards and pace.
         val env = extras.envelopes?.takeIf { extras.insightsMonth == null }
         if (env != null) {
+            if (env.period.byPayday || env.period.view == "month") item { EnvelopeViewToggle(extras.envelopesByMonth, onEnvelopesByMonth) }
             item { EnvelopeHero(env) }
             if (env.message != null) item { EnvelopeMessage(env) }
             if ((env.lastPeriod?.leftoverCents ?: 0) >= 100) item { EnvelopeLeftover(env) }
@@ -95,7 +96,7 @@ fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCate
             listOf("FLEXIBLE", "ESSENTIAL", "PLANNED").forEach { tier ->
                 if (env.groups.any { it.tier == tier }) item { EnvelopeTierCard(env, tier, onOpenCategory) }
             }
-            item { AffordCard(env) }
+            item { EnvelopeSummaryCard(env) }
             item { Text("Looking back", color = c.ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, top = 6.dp)) }
         } else {
             s.budget?.let { b ->

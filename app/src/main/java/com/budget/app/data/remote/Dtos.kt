@@ -268,12 +268,17 @@ data class EnvelopeDto(
 )
 
 @Serializable
-data class EnvelopePeriodDto(val from: String = "", val next: String = "", val daysLeft: Int = 0, val days: Int = 0, val perYear: Int = 12, val byPayday: Boolean = false)
+data class EnvelopePeriodDto(val from: String = "", val next: String = "", val daysLeft: Int = 0, val days: Int = 0, val perYear: Int = 12, val byPayday: Boolean = false, val view: String = "period")
+
+@Serializable
+data class TierTotalDto(val leftCents: Long = 0, val overCents: Long = 0)
 
 @Serializable
 data class EnvelopeDebtDto(
     val perPeriodCents: Long = 0,
     val automatic: Boolean = true,
+    /** set, plan or minimum. */
+    val source: String = "plan",
     val name: String? = null,
     val balanceCents: Long? = null,
     val endsOn: String? = null,
@@ -287,6 +292,12 @@ data class EnvelopeLastPeriodDto(val from: String = "", val to: String = "", val
 @Serializable
 data class EnvelopesResponse(
     val period: EnvelopePeriodDto = EnvelopePeriodDto(),
+    /** Server 0.41+: every envelope's money left, less any overage nothing covered (negative when over). */
+    val allLeftCents: Long? = null,
+    val allOverCents: Long = 0,
+    val byTier: Map<String, TierTotalDto> = emptyMap(),
+    /** due: bills due in this period. average: a share of the year. */
+    val basis: String = "average",
     val incomeCents: Long = 0,
     val billsCents: Long = 0,
     val essentialCents: Long = 0,

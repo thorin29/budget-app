@@ -173,7 +173,7 @@ class ApiClient(
     }
 
     /** Spending envelopes for the pay period in progress (server 0.40+). */
-    suspend fun envelopes(): EnvelopesResponse = decode(send("GET", "/api/v1/envelopes"))
+    suspend fun envelopes(month: Boolean = false): EnvelopesResponse = decode(send("GET", "/api/v1/envelopes" + if (month) "?view=month" else ""))
 
     /** A repeating charge: [action] is "add" (make it a monthly bill) or "dismiss". */
     suspend fun repeat(key: String, action: String) {
