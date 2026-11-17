@@ -44,6 +44,7 @@ import com.budget.app.data.Dates
 import com.budget.app.data.Money
 import com.budget.app.data.PaceLogic
 import com.budget.app.data.remote.InsightsResponse
+import com.budget.app.data.remote.LimitDto
 import com.budget.app.data.remote.PaceDto
 import com.budget.app.data.remote.PayoffDto
 import com.budget.app.data.remote.SuggestionDto
@@ -83,6 +84,7 @@ fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCate
             return@LazyColumn
         }
 
+        s.limit?.let { l -> item { LimitCard(l) } }
         item { Totals(s) }
         s.pace?.let { p -> item { PaceCard(p, s.leftAfterBillsCents, s.weekCents) } }
         if (s.payoff.isNotEmpty()) item { PayoffCard(s.payoff) }
@@ -215,6 +217,63 @@ private fun Totals(s: InsightsResponse) {
             SmallTotal("Bills paid", Money.format(s.billsCents), Modifier.weight(1f))
             SmallTotal("Money in", Money.format(s.inCents), Modifier.weight(1f))
             SmallTotal("In minus out", Money.format(s.netCents), Modifier.weight(1f), if (s.netCents < 0) c.danger else c.ink)
+        }
+    }
+}
+
+/** The big picture: what everyday spending can be each month, against what it has been. */
+@Composable
+private fun LimitCard(a: LimitDto) {
+    val c = Budget.colors
+    val t = a.thisMonth
+    Card("Spending limit") {
+        if (a.limitCents > 0) {
+            Text("Keep everyday spending, cards and debit together, to about", color = c.muted, fontSize = 13.sp)
+            Text("${Money.whole(a.limitCents)} a month", color = c.ink, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
+        } else {
+            Text("The plan's bills and 0% payoff already take more than its income, so nothing is left for everyday spending.", color = c.danger, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Text(
+            "${Money.whole(a.incomeCents)} income${if (a.incomeSource == "bank") " (recent deposits)" else ""} − ${Money.whole(a.fixedBillsCents)} bills" +
+                (if (a.payoffCents > 0) " − ${Money.whole(a.payoffCents)} 0% payoff" else "") + ", averaged over the next 12 months",
+            color = c.muted, fontSize = 12.sp,
+        )
+        if (a.averageCents > 0) {
+            val over = a.overCents > 0
+            Text(
+                if (over) "The last three months averaged ${Money.whole(a.averageCents)}: about ${Money.whole(a.overCents)} a month over (${Money.whole(a.overCents * 12)} a year)."
+                else "The last three months averaged ${Money.whole(a.averageCents)}, about ${Money.whole(-a.overCents)} a month under." +
+                    "",
+                color = if (over) c.danger else c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.fillMaxWidth().background(if (over) c.dangerSoft else c.accentSoft, RoundedCornerShape(10.dp)).padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+            if (a.averageOnCardsCents > 0) Text("${Money.whole(a.averageOnCardsCents)} of it went on cards.", color = c.muted, fontSize = 12.sp)
+        }
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text("This month: ${Money.whole(t.spentCents)} of ${Money.whole(a.limitCents)}", color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        }
+        val scale = maxOf(a.limitCents, t.projectedCents ?: 0L, t.spentCents, 1L).toFloat()
+        BoxWithConstraints(Modifier.fillMaxWidth().height(16.dp)) {
+            val w = maxWidth
+            Box(Modifier.fillMaxWidth().height(10.dp).align(Alignment.Center).background(c.raised, RoundedCornerShape(5.dp)))
+            t.projectedCents?.let { p -> Box(Modifier.width(w * (p / scale).coerceIn(0f, 1f)).height(10.dp).align(Alignment.CenterStart).background(c.accentSoft, RoundedCornerShape(5.dp))) }
+            Box(Modifier.width(w * (t.spentCents / scale).coerceIn(0f, 1f)).height(10.dp).align(Alignment.CenterStart).background(if (t.spentCents > a.limitCents) c.danger else c.accent, RoundedCornerShape(5.dp)))
+            if (a.limitCents > 0) Box(Modifier.offset(x = w * (a.limitCents / scale).coerceIn(0f, 1f) - 1.dp).width(2.dp).fillMaxHeight().background(c.ink))
+        }
+        Text(
+            if (t.leftCents >= 0) "${Money.whole(t.leftCents)} left · about ${Money.whole(t.perWeekLeftCents)} a week for the next ${t.daysLeft} days"
+            else "${Money.whole(-t.leftCents)} over the limit already",
+            color = if (t.leftCents < 0) c.danger else c.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            "The line is the limit" + (t.projectedCents?.let { "; at your usual pace the month ends near ${Money.whole(it)}" } ?: "") + ".",
+            color = c.muted, fontSize = 12.sp,
+        )
+        if (a.cardPaymentNames.isNotEmpty()) {
+            Text(
+                "Card payments (${a.cardPaymentNames.joinToString(", ")}) aren't counted as bills here: they pay for this spending.",
+                color = c.muted, fontSize = 12.sp,
+            )
         }
     }
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.0]
+
+Needs server 0.33.
+
+- Spending limit: the most everyday spending (cards and debit together) can be each month and
+  keep within the plan, at the top of Insights, with how far over or under the last three months
+  ran and what's left this month per week. Today shows this month against it, and the weekly
+  summary mentions it.
+
 ## [0.8.0]
 
 Needs server 0.32 for the new parts of Insights.

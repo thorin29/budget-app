@@ -44,6 +44,7 @@ import com.budget.app.data.CardLogic
 import com.budget.app.data.remote.CardsResponse
 import com.budget.app.data.remote.SuggestionDto
 import com.budget.app.data.remote.UpcomingDto
+import com.budget.app.data.remote.LimitDto
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.Brush
 import com.budget.app.ui.month.MonthViewModel
@@ -219,6 +220,9 @@ fun TodayScreen(
                     }
                 }
 
+                extras.insights?.limit?.takeIf { it.limitCents > 0 }?.let { l ->
+                    item { LimitRow(l, onClick = onOpenInsights) }
+                }
                 extras.insights?.upcoming?.firstOrNull()?.let { u ->
                     item { ComingUpRow(u, onClick = onOpenInsights) }
                 }
@@ -427,5 +431,39 @@ private fun ComingUpRow(u: UpcomingDto, onClick: () -> Unit) {
             Text("Yearly charge around ${Dates.short(u.expectedOn) ?: u.expectedOn}", color = c.muted, fontSize = 13.sp)
         }
         Text(Money.format(u.cents), color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** This month's everyday spending against the monthly limit. Opens Insights. */
+@Composable
+private fun LimitRow(l: LimitDto, onClick: () -> Unit) {
+    val c = Budget.colors
+    val t = l.thisMonth
+    val over = t.leftCents < 0
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(c.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, c.line, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Spending this month", color = c.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Text("${Money.whole(t.spentCents)} of ${Money.whole(l.limitCents)}", color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        }
+        Box(Modifier.fillMaxWidth().height(8.dp).background(c.raised, RoundedCornerShape(4.dp))) {
+            Box(
+                Modifier
+                    .fillMaxWidth((t.spentCents.toFloat() / l.limitCents).coerceIn(0f, 1f))
+                    .height(8.dp)
+                    .background(if (over) c.danger else c.accent, RoundedCornerShape(4.dp)),
+            )
+        }
+        Text(
+            if (over) "${Money.whole(-t.leftCents)} over the monthly limit" else "${Money.whole(t.leftCents)} left · about ${Money.whole(t.perWeekLeftCents)} a week",
+            color = if (over) c.danger else c.muted, fontSize = 13.sp,
+        )
     }
 }

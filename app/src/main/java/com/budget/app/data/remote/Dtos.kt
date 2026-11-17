@@ -305,6 +305,26 @@ data class InsightsResponse(
     val merchants: List<MerchantSpendDto> = emptyList(),
     val managed: List<ManagedDto> = emptyList(),
     val payoff: List<PayoffDto> = emptyList(),
+    /** Server 0.33+, month in progress: the most everyday spending can be each month and keep within the plan. */
+    val limit: LimitDto? = null,
+)
+
+@Serializable
+data class LimitMonthDto(val spentCents: Long = 0, val leftCents: Long = 0, val perWeekLeftCents: Long = 0, val projectedCents: Long? = null, val daysLeft: Int = 0)
+
+@Serializable
+data class LimitDto(
+    val incomeCents: Long = 0,
+    /** plan | bank */
+    val incomeSource: String = "plan",
+    val fixedBillsCents: Long = 0,
+    val payoffCents: Long = 0,
+    val limitCents: Long = 0,
+    val averageCents: Long = 0,
+    val overCents: Long = 0,
+    val averageOnCardsCents: Long = 0,
+    val cardPaymentNames: List<String> = emptyList(),
+    val thisMonth: LimitMonthDto = LimitMonthDto(),
 )
 
 @Serializable
