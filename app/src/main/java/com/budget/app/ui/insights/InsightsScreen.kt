@@ -63,7 +63,7 @@ private fun monthShort(year: Int, month: Int) = YearMonth.of(year, month).format
 
 /** The Insights tab, as on the web: totals, pace, payoff, suggestions, charts, categories and more. */
 @Composable
-fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCategory: (String) -> Unit = {}) {
+fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCategory: (String) -> Unit = {}, onMakeBill: (String, String) -> Unit = { _, _ -> }) {
     val c = Budget.colors
     val s = extras.insights
     LazyColumn(
@@ -90,9 +90,10 @@ fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCate
         if (env != null) {
             item { PlanHero(env) }
             if (!env.closed) item { WhatIfCard(env) }
-            item { PlanAddsUpCard(env) }
+            item { PlanAddsUpCard(env, onMakeBill) }
+            if (!env.closed) extras.cash?.let { cash -> item { CashTimingCard(cash) } }
             listOf("ESSENTIAL", "FLEXIBLE", "UNPLANNED", "SORT").forEach { tier ->
-                if (env.groups.any { it.tier == tier }) item { PlanTierCard(env, tier, onOpenCategory) }
+                if (env.groups.any { it.tier == tier }) item { PlanTierCard(env, tier, onOpenCategory, onMakeBill) }
             }
             item { Text("Looking back", color = c.ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, top = 6.dp)) }
         } else {

@@ -184,6 +184,15 @@ class ApiClient(
         send("POST", "/api/v1/review/repeat", body = body)
     }
 
+    /** Cash timing: checking through the rest of this month and next (server 0.44+). */
+    suspend fun cash(): CashTimingResponse = decode(send("GET", "/api/v1/cash"))
+
+    /** "Make it a bill": a monthly bill from a charge, tied to its merchant (server 0.44+). */
+    suspend fun chargeAsBill(transactionId: String) {
+        val body = buildJsonObject { put("transactionId", transactionId) }.toString()
+        send("POST", "/api/v1/bills/from-charge", body = body)
+    }
+
     /** Asks the server to read the bank now (skipped when it just did). */
     suspend fun syncBank(): BankSyncResponse = decode(send("POST", "/api/v1/bank/sync", body = "{}"))
 

@@ -39,6 +39,19 @@ class PlanAlertWorker(context: Context, params: WorkerParameters) : CoroutineWor
         } catch (_: Exception) {
             return Result.success()
         }
+        // Checking running short on a coming due date: once per date.
+        runCatching { c.api.cash() }.getOrNull()?.let { cash ->
+            val on = cash.shortOn
+            if (!cash.missing && on != null && c.settings.get(Settings.PLAN_PAYDAY_LAST) != "short:$on") {
+                c.settings.set(Settings.PLAN_PAYDAY_LAST, "short:$on")
+                val step = cash.steps.firstOrNull { it.date == on && it.balanceCents < 0 }
+                post(
+                    "Checking runs short on ${com.budget.app.data.Dates.short(on) ?: on}",
+                    "${step?.let { "${it.label} takes ${com.budget.app.data.Money.whole(-it.cents)} and " } ?: ""}checking would drop to ${com.budget.app.data.Money.whole(cash.lowCents)}. Move money in or pay something later before then.",
+                    SHORT_ID,
+                )
+            }
+        }
         val level = PlanAlerts.level(plan) ?: return Result.success()
         val key = "${plan.month}:$level"
         // Low then over is two alerts; low twice is one.
@@ -57,7 +70,7 @@ class PlanAlertWorker(context: Context, params: WorkerParameters) : CoroutineWor
         if (manager != null && manager.getNotificationChannel(CHANNEL) == null) {
             manager.createNotificationChannel(
                 NotificationChannel(CHANNEL, "Spending plan", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = "When what's safe to spend this month runs low or goes over"
+                    description = "When what's safe to spend this month runs low, and when checking would run short on a due date"
                 },
             )
         }
@@ -87,6 +100,7 @@ class PlanAlertWorker(context: Context, params: WorkerParameters) : CoroutineWor
         private const val NAME = "plan-alerts"
         private const val CHANNEL = "spending-plan"
         private const val EMPTY_ID = 2005
+        private const val SHORT_ID = 2004
         private const val MORNING_HOUR = 8
 
         fun schedule(context: Context) {

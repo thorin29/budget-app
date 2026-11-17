@@ -36,6 +36,7 @@ import com.budget.app.data.Dates
 import com.budget.app.data.MonthPlanLogic
 import com.budget.app.data.Money
 import com.budget.app.data.PlanAlerts
+import com.budget.app.data.remote.CashTimingResponse
 import com.budget.app.data.remote.MonthPlanResponse
 import com.budget.app.data.remote.PlanGroupDto
 import com.budget.app.data.remote.PlanTxnDto
@@ -98,15 +99,26 @@ fun PlanHero(v: MonthPlanResponse, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun TxnRows(rows: List<PlanTxnDto>) {
+private fun TxnRows(rows: List<PlanTxnDto>, onMakeBill: ((String, String) -> Unit)? = null) {
     val c = Budget.colors
     if (rows.isEmpty()) Text("Nothing yet.", color = c.muted, fontSize = 12.sp)
     rows.forEach { t ->
-        Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+        var asked by remember(t.id) { mutableStateOf(false) }
+        Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "${day(t.date)}  ${t.name}${if (t.pending) " · pending" else ""}${if (t.split) " · part of an order" else ""}",
                 color = c.ink, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
             )
+            if (onMakeBill != null && t.cents > 0 && !t.split && !t.pending) {
+                Text(
+                    if (asked) "Added" else "Make it a bill",
+                    color = if (asked) OK else c.accentText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 8.dp).clickable(enabled = !asked) {
+                        asked = true
+                        onMakeBill(t.id, t.name)
+                    },
+                )
+            }
             Text(Money.format(t.cents), color = c.ink, fontSize = 12.sp)
         }
     }
@@ -139,7 +151,7 @@ private fun StepRow(sign: String, label: String, cents: Long, note: String? = nu
 }
 
 @Composable
-fun PlanAddsUpCard(v: MonthPlanResponse) {
+fun PlanAddsUpCard(v: MonthPlanResponse, onMakeBill: ((String, String) -> Unit)? = null) {
     val c = Budget.colors
     Panel {
         Text("How it adds up", color = c.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
@@ -171,7 +183,7 @@ fun PlanAddsUpCard(v: MonthPlanResponse) {
             }
             if (v.bills.other.isNotEmpty()) {
                 Text("Charges in bill categories that aren't on the bill list (${Money.format(v.bills.otherCents)})", color = c.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp))
-                TxnRows(v.bills.other)
+                TxnRows(v.bills.other, onMakeBill)
             }
         }
         val d = v.debt
@@ -294,7 +306,7 @@ fun WhatIfCard(v: MonthPlanResponse) {
 }
 
 @Composable
-private fun PlanGroupRow(g: PlanGroupDto, share: Float, safeCents: Long, onOpenCategory: (String) -> Unit) {
+private fun PlanGroupRow(g: PlanGroupDto, share: Float, safeCents: Long, onOpenCategory: (String) -> Unit, onMakeBill: ((String, String) -> Unit)?) {
     val c = Budget.colors
     var open by rememberSaveable(g.id) { mutableStateOf(false) }
     val limit = g.limitCents
@@ -333,7 +345,7 @@ private fun PlanGroupRow(g: PlanGroupDto, share: Float, safeCents: Long, onOpenC
                     }
                     if (catOpen) {
                         Column(Modifier.padding(start = 8.dp)) {
-                            TxnRows(cat.transactions)
+                            TxnRows(cat.transactions, onMakeBill)
                             cat.id?.let { id ->
                                 Text("See this category's months", color = c.accentText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onOpenCategory(id) }.padding(vertical = 4.dp))
                             }
@@ -353,7 +365,7 @@ private val TIERS = mapOf(
 )
 
 @Composable
-fun PlanTierCard(v: MonthPlanResponse, tier: String, onOpenCategory: (String) -> Unit) {
+fun PlanTierCard(v: MonthPlanResponse, tier: String, onOpenCategory: (String) -> Unit, onMakeBill: ((String, String) -> Unit)? = null) {
     val c = Budget.colors
     val rows = v.groups.filter { it.tier == tier && (tier != "SORT" || it.spentCents != 0L) }
     if (rows.isEmpty()) return
@@ -365,6 +377,59 @@ fun PlanTierCard(v: MonthPlanResponse, tier: String, onOpenCategory: (String) ->
             Text("${Money.whole(rows.sumOf { it.spentCents })} spent", color = c.muted, fontSize = 13.sp)
         }
         Text(note, color = c.muted, fontSize = 12.sp)
-        rows.forEach { PlanGroupRow(it, share, v.safeCents, onOpenCategory) }
+        rows.forEach { PlanGroupRow(it, share, v.safeCents, onOpenCategory, onMakeBill) }
+    }
+}
+
+/** Will checking cover it? Checking through the rest of this month and next, and each paycheck's payments. */
+@Composable
+fun CashTimingCard(cash: CashTimingResponse) {
+    val c = Budget.colors
+    Panel {
+        Text("Will checking cover it?", color = c.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        if (cash.missing) {
+            Text("This needs checking's balance. Choose the bills account in Settings on the web and link it to the bank.", color = c.muted, fontSize = 13.sp)
+            return@Panel
+        }
+        Text("Checking ${Money.whole(cash.startCents)} now · through ${day(cash.until)}", color = c.muted, fontSize = 12.sp)
+        val short = cash.shortOn != null
+        val shortStep = cash.steps.firstOrNull { it.date == cash.shortOn && it.balanceCents < 0 }
+        Text(
+            if (short) "Checking would run short on ${day(cash.shortOn!!)}${shortStep?.let { ", when ${it.label} takes ${Money.whole(-it.cents)}" } ?: ""}. It gets as low as ${Money.whole(cash.lowCents)} on ${day(cash.lowOn)}."
+            else "Checking covers every bill and full card payment through ${day(cash.until)}. The lowest it gets is ${Money.whole(cash.lowCents)}, on ${day(cash.lowOn)}.",
+            color = if (short) c.danger else OK, fontSize = 13.sp,
+            modifier = Modifier.padding(top = 8.dp).fillMaxWidth().background(if (short) c.dangerSoft else OK.copy(alpha = 0.12f), RoundedCornerShape(12.dp)).padding(10.dp),
+        )
+        cash.spans.forEachIndexed { i, sp ->
+            var open by rememberSaveable(sp.from) { mutableStateOf(i < 2) }
+            Column(Modifier.padding(top = 10.dp).fillMaxWidth().border(1.dp, c.line, RoundedCornerShape(12.dp)).padding(10.dp)) {
+                Row(Modifier.fillMaxWidth().clickable { open = !open }) {
+                    Text(
+                        (if (i == 0 && sp.payCents == 0L) "Now until ${day(sp.to)}" else "${day(sp.from)} paycheck") + if (open) "  ▴" else "  ▾",
+                        color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f),
+                    )
+                    Text("${if (sp.payCents > 0) "${Money.whole(sp.payCents)} in · " else ""}${Money.whole(sp.outCents)} out", color = c.muted, fontSize = 12.sp)
+                }
+                if (open) {
+                    if (sp.items.isEmpty()) Text("Nothing due.", color = c.muted, fontSize = 12.sp)
+                    sp.items.forEach { s ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "${day(s.date)}  ${s.label}${if (s.kind == "card") " · card, in full${if (s.estimate) " (so far)" else ""}" else ""}${if (s.kind == "debt") " · 0% payment" else ""}",
+                                color = c.ink, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+                            )
+                            if (s.overdue) Pill("Overdue", c.danger, c.dangerSoft)
+                            Text(Money.format(-s.cents), color = c.ink, fontSize = 12.sp, modifier = Modifier.padding(start = 6.dp))
+                        }
+                    }
+                }
+                val next = cash.spans.getOrNull(i + 1)
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                    Text(if (next != null) "Before the ${day(next.from)} paycheck" else "On ${day(sp.to)}", color = if (sp.endCents < 0) c.danger else c.ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    Text(Money.whole(sp.endCents), color = if (sp.endCents < 0) c.danger else c.ink, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        Text("Cards are paid in full on their due dates. A card's next payment is what's been charged since its statement, so it grows as you spend.", color = c.muted, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }

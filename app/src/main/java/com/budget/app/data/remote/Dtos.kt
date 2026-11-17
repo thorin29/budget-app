@@ -348,6 +348,46 @@ data class MonthPlanResponse(
     val groups: List<PlanGroupDto> = emptyList(),
 )
 
+@Serializable
+data class CashStepDto(
+    val date: String = "",
+    val label: String = "",
+    /** Money in is positive. */
+    val cents: Long = 0,
+    /** pay, bill, card or debt. */
+    val kind: String = "bill",
+    val estimate: Boolean = false,
+    val overdue: Boolean = false,
+    val balanceCents: Long = 0,
+)
+
+@Serializable
+data class PaycheckSpanDto(
+    val from: String = "",
+    val to: String = "",
+    val payCents: Long = 0,
+    val outCents: Long = 0,
+    val items: List<CashStepDto> = emptyList(),
+    val endCents: Long = 0,
+)
+
+/** Cash timing (server 0.44+). */
+@Serializable
+data class CashTimingResponse(
+    val today: String = "",
+    val until: String = "",
+    val missing: Boolean = false,
+    val balanceAsOf: String? = null,
+    val startCents: Long = 0,
+    val steps: List<CashStepDto> = emptyList(),
+    val lowCents: Long = 0,
+    val lowOn: String = "",
+    val shortOn: String? = null,
+    val shortCents: Long = 0,
+    val spans: List<PaycheckSpanDto> = emptyList(),
+    val cardsWithoutDays: Int = 0,
+)
+
 // ------------------------------------------------------------ insights (server 0.27+)
 
 @Serializable

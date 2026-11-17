@@ -201,6 +201,7 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
                             extrasVm.openCategory(it)
                             showCategory = true
                         },
+                        onMakeBill = { id, name -> extrasVm.chargeAsBill(id, name) },
                     )
                 }
                 Tab.MORE -> when {

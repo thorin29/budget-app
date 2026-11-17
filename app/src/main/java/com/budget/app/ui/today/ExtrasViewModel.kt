@@ -6,6 +6,7 @@ import com.budget.app.AppContainer
 import com.budget.app.data.remote.ApiException
 import com.budget.app.data.remote.AutoRecordedDto
 import com.budget.app.data.remote.CardsResponse
+import com.budget.app.data.remote.CashTimingResponse
 import com.budget.app.data.remote.CategoryDetailResponse
 import com.budget.app.data.remote.InsightsResponse
 import com.budget.app.data.remote.LooksPaidDto
@@ -28,6 +29,8 @@ data class ExtrasUi(
     val plan: MonthPlanResponse? = null,
     /** This month's plan, for Today, whichever month Insights shows. */
     val planNow: MonthPlanResponse? = null,
+    /** Cash timing for this month and next. Null on a server older than 0.44. */
+    val cash: CashTimingResponse? = null,
     /** The month Insights shows, YYYY-MM; null for the month in progress. */
     val insightsMonth: String? = null,
     val category: CategoryDetailResponse? = null,
@@ -57,6 +60,7 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
             val month = _ui.value.insightsMonth
             val planNow = async { runCatching { c.api.plan() }.getOrNull() }
             val planThen = async { if (month == null) null else runCatching { c.api.plan(month) }.getOrNull() }
+            val cash = async { runCatching { c.api.cash() }.getOrNull() }
             val (cr, rr, ir) = Triple(cards.await(), review.await(), insights.await())
             val now = planNow.await()
             val then = planThen.await()
@@ -64,6 +68,7 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
                 it.copy(
                     cards = cr ?: it.cards, review = rr ?: it.review, insights = ir ?: it.insights,
                     planNow = now ?: it.planNow, plan = (if (month == null) now else then) ?: it.plan,
+                    cash = cash.await() ?: it.cash,
                 )
             }
         }
@@ -97,6 +102,8 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
     fun dismiss(item: LooksPaidDto) = act("Won't suggest that charge for ${item.billName} again.") { c.api.dismissReview(item) }
 
     fun addRepeat(item: RepeatDto) = act("Added ${item.merchant} as a monthly bill. Edit it on Plan if anything's off.") { c.api.repeat(item.key, "add") }
+
+    fun chargeAsBill(transactionId: String, name: String) = act("Added $name as a monthly bill. Change it on Plan if anything's off.") { c.api.chargeAsBill(transactionId) }
 
     fun dismissRepeat(item: RepeatDto) = act("Won't suggest ${item.merchant} as a bill again.") { c.api.repeat(item.key, "dismiss") }
 

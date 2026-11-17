@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.18.0]
+
+Needs server 0.44.
+
+- **Will checking cover it?** on Insights: whether checking covers every bill and full card payment
+  through next month, the lowest point, and what each paycheck has to pay.
+- An alert when checking would run short on a coming due date, once per date.
+- **Make it a bill** on a charge in the plan's transactions.
+
 ## [0.17.0]
 
 Needs server 0.43.
