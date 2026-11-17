@@ -68,14 +68,15 @@ import com.budget.app.ui.theme.PhIcon
 enum class Tab(val label: String, val icon: Ph, val iconOn: Ph) {
     TODAY("Today", Ph.HOUSE, Ph.HOUSE_FILL),
     MONTH("Month", Ph.CALENDAR, Ph.CALENDAR_FILL),
-    PLAN("Plan", Ph.CHART, Ph.CHART_FILL),
+    CARDS("Cards", Ph.CARD, Ph.CARD_FILL),
+    INSIGHTS("Insights", Ph.PIE, Ph.PIE_FILL),
     MORE("More", Ph.LIST, Ph.LIST_FILL),
 }
 
 /** Which month a record sheet works on, and what it opened on. */
 private data class RecordRequest(val vm: MonthViewModel, val entry: MonthEntry?)
 
-/** Signed in: four tabs along the bottom, and the record sheet over any of them. */
+/** Signed in: five tabs along the bottom (Plan lives under More), and the record sheet over any of them. */
 @Composable
 fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
     val c = Budget.colors
@@ -91,6 +92,18 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
     var record by remember { mutableStateOf<RecordRequest?>(null) }
     var editingBalanceOf by remember { mutableStateOf<MonthViewModel?>(null) }
     var showUpdate by rememberSaveable { mutableStateOf(false) }
+    // "What can I pay?" opens over More, from More or from Today's balance card.
+    var showPlan by rememberSaveable { mutableStateOf(false) }
+    var planFromToday by rememberSaveable { mutableStateOf(false) }
+
+    // Opened from a card reminder: straight to the Cards tab.
+    val openCards by container.openCards.collectAsState()
+    LaunchedEffect(openCards) {
+        if (openCards) {
+            tab = Tab.CARDS
+            container.openCards.value = false
+        }
+    }
 
     // Opened from the update notification: straight to the Update screen.
     val openUpdate by container.openUpdate.collectAsState()
@@ -119,12 +132,16 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
                 extrasVm.load()
             }
             Tab.MONTH -> monthVm.load()
-            Tab.PLAN -> planVm.load()
-            Tab.MORE -> Unit
+            Tab.CARDS, Tab.INSIGHTS -> extrasVm.load()
+            Tab.MORE -> if (showPlan) planVm.load() else Unit
         }
     }
 
     BackHandler(enabled = tab != Tab.TODAY && !showUpdate) { tab = Tab.TODAY }
+    BackHandler(enabled = tab == Tab.MORE && showPlan) {
+        showPlan = false
+        if (planFromToday) tab = Tab.TODAY
+    }
     BackHandler(enabled = tab == Tab.TODAY && showReview) {
         showReview = false
         todayVm.load()
@@ -144,23 +161,42 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
                         onRecord = { record = RecordRequest(todayVm, it) },
                         onEditBalance = { editingBalanceOf = todayVm },
                         onOpenMonth = { tab = Tab.MONTH },
-                        onOpenPlan = { tab = Tab.PLAN },
+                        onOpenPlan = {
+                            showPlan = true
+                            planFromToday = true
+                            showUpdate = false
+                            tab = Tab.MORE
+                            planVm.load()
+                        },
                         onOpenMore = { tab = Tab.MORE },
                         extras = extras,
                         onOpenReview = { showReview = true },
+                        onOpenCards = { tab = Tab.CARDS },
+                        onOpenInsights = { tab = Tab.INSIGHTS },
                     )
                 }
                 Tab.MONTH -> MonthScreen(monthVm, onRecord = { record = RecordRequest(monthVm, it) })
-                Tab.PLAN -> PlanScreen(planVm, onEditBalance = { editingBalanceOf = todayVm })
-                Tab.MORE -> if (showUpdate) {
-                    UpdateScreen(container, onBack = { showUpdate = false })
-                } else {
-                    MoreScreen(container, session, onOpenUpdate = { showUpdate = true })
+                Tab.CARDS -> com.budget.app.ui.cards.CardsScreen(container, extras)
+                Tab.INSIGHTS -> com.budget.app.ui.insights.InsightsScreen(extras)
+                Tab.MORE -> when {
+                    showUpdate -> UpdateScreen(container, onBack = { showUpdate = false })
+                    showPlan -> PlanScreen(planVm, onEditBalance = { editingBalanceOf = todayVm }, onBack = {
+                        showPlan = false
+                        if (planFromToday) tab = Tab.TODAY
+                    })
+                    else -> MoreScreen(container, session, onOpenUpdate = { showUpdate = true }, onOpenPlan = {
+                        showPlan = true
+                        planFromToday = false
+                        planVm.load()
+                    })
                 }
             }
         }
         BottomBar(tab, updateAvailable = update != null, onSelect = {
-            if (it == tab && it == Tab.MORE) showUpdate = false
+            if (it == Tab.MORE && (it == tab || planFromToday)) {
+                showUpdate = false
+                showPlan = false
+            }
             tab = it
         })
     }
@@ -195,7 +231,7 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
             onSave = {
                 vm.setBalance(it)
                 editingBalanceOf = null
-                if (tab == Tab.PLAN) planVm.load()
+                if (showPlan) planVm.load()
             },
         )
     }

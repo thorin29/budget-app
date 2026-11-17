@@ -40,6 +40,9 @@ class Settings(private val store: DataStore<Preferences>) {
         const val REMINDER_LEAD = "reminder_lead"
         /** The last day reminders ran, so each day reminds once. */
         const val REMINDER_LAST_DAY = "reminder_last_day"
+        /** Card payment reminders: off, 0, 1, 3 or 5 days before (plus the due date itself). */
+        const val CARD_REMINDER_LEAD = "card_reminder_lead"
+        const val CARD_REMINDER_LAST_DAY = "card_reminder_last_day"
         const val THEME_MODE = "theme_mode"
         const val ACCENT = "accent"
     }

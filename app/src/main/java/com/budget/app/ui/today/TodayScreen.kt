@@ -40,8 +40,11 @@ import com.budget.app.data.remote.MonthView
 import com.budget.app.data.sync.Overlay
 import com.budget.app.ui.common.Banner
 import com.budget.app.ui.common.BillTile
-import com.budget.app.ui.cards.CardStack
-import com.budget.app.data.remote.InsightsResponse
+import com.budget.app.data.CardLogic
+import com.budget.app.data.remote.CardsResponse
+import com.budget.app.data.remote.SuggestionDto
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.Brush
 import com.budget.app.ui.month.MonthViewModel
 import com.budget.app.ui.record.toneColor
 import com.budget.app.ui.theme.Budget
@@ -60,6 +63,8 @@ fun TodayScreen(
     onOpenMore: () -> Unit,
     extras: ExtrasUi = ExtrasUi(),
     onOpenReview: () -> Unit = {},
+    onOpenCards: () -> Unit = {},
+    onOpenInsights: () -> Unit = {},
 ) {
     val c = Budget.colors
     val ui by vm.ui.collectAsState()
@@ -163,7 +168,7 @@ fun TodayScreen(
             }
 
             extras.cards?.takeIf { it.cards.isNotEmpty() }?.let { cards ->
-                item { CardStack(cards) }
+                item { CardsRow(cards, onClick = onOpenCards) }
             }
 
             if (view != null) {
@@ -208,7 +213,11 @@ fun TodayScreen(
                     }
                 }
 
-                extras.insights?.takeIf { it.everydayCents > 0 || it.categories.isNotEmpty() }?.let { s -> item { SpendingCard(s) } }
+                extras.insights?.let { ins ->
+                    ins.suggestions.firstOrNull()?.let { top ->
+                        item { SuggestionCard(top, more = ins.suggestions.size - 1, onClick = onOpenInsights) }
+                    }
+                }
             } else if (!ui.loading) {
                 item { Text("Nothing loaded yet. Pull it in once you're online.", color = c.muted, modifier = Modifier.padding(4.dp)) }
             }
@@ -307,47 +316,77 @@ private fun DueRow(e: MonthEntry, onClick: () -> Unit) {
     }
 }
 
-/** This month's everyday spending against the average, and where most of it went. */
+/** One line for the cards: what to pay this cycle and when, with each card's color. Opens the Cards tab. */
 @Composable
-private fun SpendingCard(s: InsightsResponse) {
+private fun CardsRow(cards: CardsResponse, onClick: () -> Unit) {
     val c = Budget.colors
-    val max = (s.categories.maxOfOrNull { maxOf(it.cents, it.averageCents) } ?: 1L).coerceAtLeast(1L)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(c.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, c.line, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val shown = cards.cards.take(3)
+        Box(Modifier.width((22 + 12 * (shown.size - 1)).dp).height(16.dp)) {
+            shown.forEachIndexed { i, card ->
+                Box(
+                    Modifier
+                        .offset(x = (12 * i).dp)
+                        .width(22.dp)
+                        .height(16.dp)
+                        .background(c.surface, RoundedCornerShape(4.dp))
+                        .padding(start = if (i > 0) 1.dp else 0.dp)
+                        .background(
+                            Brush.linearGradient(listOf(Color(CardLogic.argb(card.color.from)), Color(CardLogic.argb(card.color.to)))),
+                            RoundedCornerShape(3.dp),
+                        ),
+                )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                if (cards.payThisCycleCents > 0) {
+                    "${Money.whole(cards.payThisCycleCents)} to cards" + (cards.nextDue?.let { " by ${Dates.short(it) ?: it}" } ?: "")
+                } else {
+                    "Cards are paid for this cycle"
+                },
+                color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                "${cards.cards.size} card${if (cards.cards.size == 1) "" else "s"} · balance ${Money.whole(cards.totalOwedCents)}",
+                color = c.muted, fontSize = 13.sp,
+            )
+        }
+        PhIcon(Ph.CARET_RIGHT, null, c.muted, size = 20.dp)
+    }
+}
+
+/** The most worthwhile suggestion, with a way to the rest. Opens the Insights tab. */
+@Composable
+private fun SuggestionCard(s: SuggestionDto, more: Int, onClick: () -> Unit) {
+    val c = Budget.colors
     Column(
         Modifier
             .fillMaxWidth()
             .background(c.surface, RoundedCornerShape(20.dp))
             .border(1.dp, c.line, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text("Everyday spending", color = c.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-        Text(Money.format(s.everydayCents), color = c.ink, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        if (s.everydayAverageCents > 0) {
-            val diff = s.everydayCents - s.everydayAverageCents
-            Text(
-                if (kotlin.math.abs(diff) < 1_000) "About your ${Money.format(s.everydayAverageCents)} average"
-                else "${Money.format(kotlin.math.abs(diff))} ${if (diff > 0) "more" else "less"} than your ${Money.format(s.everydayAverageCents)} average",
-                color = c.muted, fontSize = 13.sp,
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            PhIcon(Ph.LIGHTBULB, null, c.warn, size = 18.dp)
+            Text("SUGGESTION", color = c.warn, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp, modifier = Modifier.padding(start = 6.dp))
         }
-        s.categories.take(4).forEach { cat ->
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row {
-                    Text(cat.name, color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    Text(Money.format(cat.cents), color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                }
-                Box(Modifier.fillMaxWidth().height(6.dp).background(c.raised, RoundedCornerShape(3.dp))) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth((cat.cents.toFloat() / max).coerceIn(0f, 1f))
-                            .height(6.dp)
-                            .background(c.accent, RoundedCornerShape(3.dp)),
-                    )
-                }
-            }
-        }
-        if (s.uncategorizedCount > 0) {
-            Text("${s.uncategorizedCount} charge${if (s.uncategorizedCount == 1) "" else "s"} without a category. Sort them on the web.", color = c.muted, fontSize = 12.sp)
-        }
+        Text(s.title, color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(s.detail, color = c.muted, fontSize = 13.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+        Text(
+            if (more > 0) "See all ${more + 1} in Insights" else "Open Insights",
+            color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+        )
     }
 }

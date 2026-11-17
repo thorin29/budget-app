@@ -4,7 +4,9 @@ import android.content.Context
 import com.budget.app.data.Accent
 import com.budget.app.data.Appearance
 import com.budget.app.data.EnrollLink
+import com.budget.app.data.CardReminderLead
 import com.budget.app.data.ReminderLead
+import com.budget.app.data.reminders.CardReminderWorker
 import com.budget.app.data.reminders.BillReminderWorker
 import com.budget.app.data.ThemeMode
 import com.budget.app.data.Session
@@ -48,6 +50,9 @@ class AppContainer(context: Context) {
     /** Set when the app was opened from the update notification: show the Update screen. */
     val openUpdate = MutableStateFlow(false)
 
+    /** Set when the app was opened from a card reminder: show the Cards tab. */
+    val openCards = MutableStateFlow(false)
+
     /** Light/dark and accent, chosen on this phone. Kept through sign-out. */
     val appearance: Flow<Appearance> =
         combine(settings.observe(Settings.THEME_MODE), settings.observe(Settings.ACCENT)) { mode, accent ->
@@ -62,6 +67,15 @@ class AppContainer(context: Context) {
         // A new choice reminds afresh today if a bill qualifies.
         settings.set(Settings.REMINDER_LAST_DAY, null)
         BillReminderWorker.sync(app, lead)
+    }
+
+    /** Card payment reminders on this phone. Off unless turned on in the Cards tab or under More. */
+    val cardReminderLead: Flow<CardReminderLead> = settings.observe(Settings.CARD_REMINDER_LEAD).map { CardReminderLead.from(it) }
+
+    suspend fun setCardReminderLead(lead: CardReminderLead) {
+        settings.set(Settings.CARD_REMINDER_LEAD, lead.key)
+        settings.set(Settings.CARD_REMINDER_LAST_DAY, null)
+        CardReminderWorker.sync(app, lead)
     }
 
     suspend fun setAppearance(value: Appearance) {

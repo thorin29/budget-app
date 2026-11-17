@@ -58,6 +58,9 @@ import com.budget.app.BuildConfig
 import com.budget.app.data.Accent
 import com.budget.app.data.Appearance
 import com.budget.app.data.ReminderLead
+import com.budget.app.data.CardReminderLead
+import com.budget.app.ui.cards.CardReminderSheet
+import com.budget.app.ui.cards.rememberCardReminderSetter
 import com.budget.app.data.reminders.BillReminderWorker
 import com.budget.app.data.SessionState
 import com.budget.app.data.ThemeMode
@@ -73,7 +76,7 @@ import kotlinx.coroutines.launch
 
 /** The More tab: account, what's waiting, appearance, updates, sign out. */
 @Composable
-fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUpdate: () -> Unit) {
+fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUpdate: () -> Unit, onOpenPlan: () -> Unit = {}) {
     val c = Budget.colors
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -92,6 +95,9 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
         pendingLead = null
     }
     var showWaiting by remember { mutableStateOf(false) }
+    var showCardReminders by remember { mutableStateOf(false) }
+    val cardLead by container.cardReminderLead.collectAsState(initial = CardReminderLead.OFF)
+    val setCardLead = rememberCardReminderSetter(container)
 
     Column(
         Modifier
@@ -137,6 +143,8 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
 
         SectionLabel("Budget", c.muted)
         Group {
+            Item(Ph.CHART, "What can I pay?", value = "Plan", onClick = onOpenPlan)
+            Divider()
             Item(Ph.CHART_BAR, "Year & reports", value = "Web", trailing = Ph.OPEN_OUT, onClick = {
                 runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(session.server))) }
             })
@@ -154,6 +162,8 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
             Item(Ph.CONTRAST, "Appearance", value = "${appearance.mode.label} · ${appearance.accent.label}", onClick = { showAppearance = true })
             Divider()
             Item(Ph.BELL, "Bill reminders", value = reminderLead.label, onClick = { showReminders = true })
+            Divider()
+            Item(Ph.CARD, "Card reminders", value = cardLead.short, onClick = { showCardReminders = true })
         }
 
         SectionLabel("App", c.muted)
@@ -218,6 +228,17 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
                 }
             },
             onDismiss = { showReminders = false },
+        )
+    }
+
+    if (showCardReminders) {
+        CardReminderSheet(
+            current = cardLead,
+            onPick = {
+                showCardReminders = false
+                setCardLead(it)
+            },
+            onDismiss = { showCardReminders = false },
         )
     }
 

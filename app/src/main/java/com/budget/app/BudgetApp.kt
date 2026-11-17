@@ -6,7 +6,9 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.budget.app.data.SessionState
 import com.budget.app.data.Settings
+import com.budget.app.data.CardReminderLead
 import com.budget.app.data.ReminderLead
+import com.budget.app.data.reminders.CardReminderWorker
 import com.budget.app.data.reminders.BillReminderWorker
 import com.budget.app.data.update.UpdateCheckWorker
 import com.budget.app.data.update.UpdateNotifier
@@ -38,6 +40,7 @@ class BudgetApp : Application() {
         scope.launch { container.updates.restore() }
         UpdateCheckWorker.schedule(this)
         scope.launch { BillReminderWorker.sync(this@BudgetApp, ReminderLead.from(container.settings.get(Settings.REMINDER_LEAD))) }
+        scope.launch { CardReminderWorker.sync(this@BudgetApp, CardReminderLead.from(container.settings.get(Settings.CARD_REMINDER_LEAD))) }
 
         // ...as soon as the app opens fresh, as in the Kairos app, and when it comes
         // back to the front, at most every 30 minutes. (A background wake-up for

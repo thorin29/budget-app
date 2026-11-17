@@ -39,11 +39,13 @@ import com.budget.app.data.remote.Projection
 import com.budget.app.ui.common.Banner
 import com.budget.app.ui.theme.Budget
 import com.budget.app.ui.theme.Ph
+import com.budget.app.ui.theme.PhIcon
+import androidx.compose.ui.Alignment
 import kotlin.math.roundToLong
 
 /** "What can I pay?": the bills balance walked forward, and what a payment today does to it. */
 @Composable
-fun PlanScreen(vm: PlanViewModel, onEditBalance: () -> Unit) {
+fun PlanScreen(vm: PlanViewModel, onEditBalance: () -> Unit, onBack: (() -> Unit)? = null) {
     val c = Budget.colors
     val ui by vm.ui.collectAsState()
     val p = ui.projection
@@ -57,6 +59,15 @@ fun PlanScreen(vm: PlanViewModel, onEditBalance: () -> Unit) {
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (onBack != null) {
+            Row(
+                Modifier.height(44.dp).clickable(onClick = onBack).padding(end = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                PhIcon(Ph.CARET_LEFT, "Back", c.ink)
+                Text("Back", color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 4.dp))
+            }
+        }
         Column(Modifier.padding(start = 4.dp)) {
             Text("Bills account, walked forward", color = c.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             Text("What can I pay?", color = c.ink, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp)

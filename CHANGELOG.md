@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.0]
+
+Best with server 0.30; on an older server the new parts show what they can.
+
+- Five tabs: Today, Month, Cards, Insights, More. "What can I pay?" moved under More (Today's
+  balance card still opens it).
+- Cards tab: the card stack, then each card with what to pay, the due date and its statement or
+  payoff plan, and the reminder setting.
+- Card payment reminders: around 8 AM, on the due date and optionally 1, 3 or 5 days before.
+  A card already paid for the cycle is skipped. Tapping one opens the Cards tab. Off until turned
+  on in the Cards tab or under More.
+- Insights tab: this month's pace against a usual month, the suggestions (tap one for the
+  details and charges behind it), and where the money went.
+- Today is lighter: one line for the cards and the top suggestion, each opening its tab.
+
 ## [0.5.1]
 
 - Cards can be thrown off either side of the screen. A swipe or quick flick sends the front card

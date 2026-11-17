@@ -18,6 +18,13 @@ object Money {
         return "$sign$$dollars.$rest"
     }
 
+    /** 123456 → "$1,235": rounded to whole dollars, for estimates. */
+    fun whole(cents: Long): String {
+        val sign = if (cents < 0) "-" else ""
+        val dollars = (abs(cents) + 50) / 100
+        return "$sign$" + String.format(Locale.US, "%,d", dollars)
+    }
+
     /** "$1,234.5" → 123450. Null for anything that isn't a plain amount of zero or more. */
     fun parse(input: String): Long? {
         val text = input.trim().removePrefix("$").replace(",", "").trim()

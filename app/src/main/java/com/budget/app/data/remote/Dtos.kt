@@ -232,4 +232,31 @@ data class InsightsResponse(
     val inCents: Long = 0,
     val categories: List<CategorySpendDto> = emptyList(),
     val uncategorizedCount: Int = 0,
+    /** Server 0.30+: the month in progress against a usual month by the same day. */
+    val pace: PaceDto? = null,
+    /** Server 0.29+: suggestions from the last six complete months, most worthwhile first. */
+    val suggestions: List<SuggestionDto> = emptyList(),
+)
+
+@Serializable
+data class PaceDto(
+    val day: Int = 0,
+    val daysInMonth: Int = 30,
+    val soFarCents: Long = 0,
+    val usualByNowCents: Long = 0,
+    val usualMonthCents: Long = 0,
+    val projectedCents: Long = 0,
+)
+
+@Serializable
+data class SuggestionItemDto(val name: String = "", val cents: Long = 0, val fromCents: Long? = null)
+
+@Serializable
+data class SuggestionDto(
+    /** rising | trim | repeating | new-repeat | price-up | interest | fees | payoff */
+    val kind: String = "",
+    val title: String = "",
+    val detail: String = "",
+    val monthlyCents: Long = 0,
+    val items: List<SuggestionItemDto> = emptyList(),
 )
