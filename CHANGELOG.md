@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.16.0]
+
+Needs server 0.42.
+
+- "Envelopes" are now the spending plan, and each line is a budget.
+- The headline on Today and Insights is a donut of what's left by kind (essentials, planned,
+  flexible, and any overage), with what each covers.
+- Payday plan on Insights: the debt payment, bills to hold, what to send each card and whether it
+  pays it to zero, and what stays in checking.
+- Money in against money out for each recent pay period.
+- Notifications: the payday plan on payday morning, and once per pay period when the money left runs
+  out.
+
 ## [0.15.0]
 
 Needs server 0.41.

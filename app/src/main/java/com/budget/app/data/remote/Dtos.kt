@@ -290,6 +290,40 @@ data class EnvelopeDebtDto(
 data class EnvelopeLastPeriodDto(val from: String = "", val to: String = "", val leftoverCents: Long = 0)
 
 @Serializable
+data class PlanCardDto(
+    val id: String = "",
+    val name: String = "",
+    val color: String? = null,
+    val dueOn: String = "",
+    val statementCents: Long = 0,
+    val owedCents: Long = 0,
+    val sendCents: Long = 0,
+    /** zero, statement, short or none. */
+    val result: String = "none",
+)
+
+@Serializable
+data class PlanBillDto(val name: String = "", val dueOn: String = "", val cents: Long = 0)
+
+@Serializable
+data class PaydayPlanDto(
+    val isPayday: Boolean = false,
+    val checkingCents: Long = 0,
+    val holdCents: Long = 0,
+    val debtCents: Long = 0,
+    val debtName: String? = null,
+    val debtDueOn: String? = null,
+    val forCardsCents: Long = 0,
+    val cards: List<PlanCardDto> = emptyList(),
+    val bills: List<PlanBillDto> = emptyList(),
+    val leftOnCardsCents: Long = 0,
+    val afterCents: Long = 0,
+)
+
+@Serializable
+data class PeriodHistoryDto(val from: String = "", val to: String = "", val inCents: Long = 0, val outCents: Long = 0, val current: Boolean = false)
+
+@Serializable
 data class EnvelopesResponse(
     val period: EnvelopePeriodDto = EnvelopePeriodDto(),
     /** Server 0.41+: every envelope's money left, less any overage nothing covered (negative when over). */
@@ -314,6 +348,9 @@ data class EnvelopesResponse(
     val message: String? = null,
     val lastPeriod: EnvelopeLastPeriodDto? = null,
     val groups: List<EnvelopeDto> = emptyList(),
+    /** Server 0.42+: what to do with the paycheck, and money in and out per recent period. */
+    val payday: PaydayPlanDto? = null,
+    val history: List<PeriodHistoryDto> = emptyList(),
 )
 
 // ------------------------------------------------------------ insights (server 0.27+)

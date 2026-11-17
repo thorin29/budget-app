@@ -46,6 +46,8 @@ class Settings(private val store: DataStore<Preferences>) {
         /** The Sunday summary: "on" or unset. */
         const val WEEKLY_SUMMARY = "weekly_summary"
         const val WEEKLY_SUMMARY_LAST = "weekly_summary_last"
+        const val PLAN_PAYDAY_LAST = "plan_payday_last"
+        const val PLAN_EMPTY_LAST = "plan_empty_last"
         const val THEME_MODE = "theme_mode"
         const val ACCENT = "accent"
     }

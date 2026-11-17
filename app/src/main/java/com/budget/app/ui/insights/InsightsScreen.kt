@@ -93,10 +93,11 @@ fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCate
             if (env.message != null) item { EnvelopeMessage(env) }
             if ((env.lastPeriod?.leftoverCents ?: 0) >= 100) item { EnvelopeLeftover(env) }
             item { PaycheckStepsCard(env) }
+            if (env.payday != null) item { PaydayPlanCard(env) }
             listOf("FLEXIBLE", "ESSENTIAL", "PLANNED").forEach { tier ->
                 if (env.groups.any { it.tier == tier }) item { EnvelopeTierCard(env, tier, onOpenCategory) }
             }
-            item { EnvelopeSummaryCard(env) }
+            if (env.history.size >= 2) item { PeriodHistoryCard(env) }
             item { Text("Looking back", color = c.ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, top = 6.dp)) }
         } else {
             s.budget?.let { b ->

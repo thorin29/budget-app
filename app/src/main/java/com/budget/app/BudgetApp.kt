@@ -43,6 +43,7 @@ class BudgetApp : Application() {
         scope.launch { BillReminderWorker.sync(this@BudgetApp, ReminderLead.from(container.settings.get(Settings.REMINDER_LEAD))) }
         scope.launch { WeeklySummaryWorker.sync(this@BudgetApp, container.settings.get(Settings.WEEKLY_SUMMARY) == "on") }
         scope.launch { CardReminderWorker.sync(this@BudgetApp, CardReminderLead.from(container.settings.get(Settings.CARD_REMINDER_LEAD))) }
+        com.budget.app.data.reminders.PlanAlertWorker.schedule(this)
 
         // ...as soon as the app opens fresh, as in the Kairos app, and when it comes
         // back to the front, at most every 30 minutes. (A background wake-up for
