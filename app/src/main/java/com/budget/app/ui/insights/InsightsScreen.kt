@@ -84,7 +84,11 @@ fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCate
             return@LazyColumn
         }
 
-        s.limit?.let { l -> item { LimitCard(l) } }
+        s.budget?.let { b ->
+            item { IncomeBarCard(b) }
+            item { CardBudgetCard(b, extras.cards?.cards?.associate { it.id to it.color } ?: emptyMap()) }
+            item { CategoryTargetsCard(b, onOpenCategory) }
+        } ?: s.limit?.let { l -> item { LimitCard(l) } }
         item { Totals(s) }
         s.pace?.let { p -> item { PaceCard(p, s.leftAfterBillsCents, s.weekCents) } }
         if (s.payoff.isNotEmpty()) item { PayoffCard(s.payoff) }

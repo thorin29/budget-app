@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.0]
+
+Needs server 0.34.
+
+- The budget plan at the top of Insights: where the income goes (one bar, with the shortfall past
+  its end), the card budget with each card's bills and spending since its statement closed and
+  the spending room left, and category targets.
+- The Cards tab shows each card's bills, spending and room left under its row.
+
 ## [0.9.0]
 
 Needs server 0.33.

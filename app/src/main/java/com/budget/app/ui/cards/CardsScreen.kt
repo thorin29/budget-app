@@ -97,9 +97,15 @@ fun CardsScreen(container: AppContainer, extras: ExtrasUi) {
                             .background(c.surface, RoundedCornerShape(20.dp))
                             .border(1.dp, c.line, RoundedCornerShape(20.dp)),
                     ) {
+                        val budgets = extras.insights?.budget?.cardBudget?.cards?.associateBy { it.id } ?: emptyMap()
                         cards.cards.forEachIndexed { i, card ->
                             if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
                             CardRow(card)
+                            budgets[card.id]?.let { b ->
+                                Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp)) {
+                                    com.budget.app.ui.insights.CardBudgetRow(b, null, showName = false)
+                                }
+                            }
                         }
                     }
                 }

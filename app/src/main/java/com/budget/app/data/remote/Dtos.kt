@@ -307,6 +307,69 @@ data class InsightsResponse(
     val payoff: List<PayoffDto> = emptyList(),
     /** Server 0.33+, month in progress: the most everyday spending can be each month and keep within the plan. */
     val limit: LimitDto? = null,
+    /** Server 0.34+, month in progress: where the income goes, the card budget, category targets. */
+    val budget: BudgetPlanDto? = null,
+)
+
+@Serializable
+data class IncomeBarDto(
+    val bankBillsCents: Long = 0,
+    val cardBillsCents: Long = 0,
+    val cardSpendingCents: Long = 0,
+    val debitSpendingCents: Long = 0,
+    val payoffCents: Long = 0,
+    /** Negative when spending and bills run past income. */
+    val leftOverCents: Long = 0,
+)
+
+@Serializable
+data class CardBudgetRowDto(
+    val id: String = "",
+    val name: String = "",
+    val color: String? = null,
+    val budgetCents: Long = 0,
+    val billsCents: Long = 0,
+    val spendingBudgetCents: Long = 0,
+    val averageSpendingCents: Long = 0,
+    val averageBillsCents: Long = 0,
+    val periodFrom: String = "",
+    val periodIsStatement: Boolean = false,
+    val sinceBillsCents: Long = 0,
+    val sinceSpendingCents: Long = 0,
+    val billsToComeCents: Long = 0,
+    val leftCents: Long = 0,
+    val balanceCents: Long = 0,
+)
+
+@Serializable
+data class CardBudgetDto(
+    val totalCents: Long = 0,
+    val billsCents: Long = 0,
+    val spendingCents: Long = 0,
+    val averageCents: Long = 0,
+    val cards: List<CardBudgetRowDto> = emptyList(),
+)
+
+@Serializable
+data class CategoryTargetDto(val id: String? = null, val name: String = "", val essential: Boolean = false, val averageCents: Long = 0, val targetCents: Long = 0, val monthCents: Long = 0)
+
+@Serializable
+data class CategoryTargetsDto(
+    val everydayBudgetCents: Long = 0,
+    val monthSpentCents: Long = 0,
+    val leftCents: Long = 0,
+    val perWeekLeftCents: Long = 0,
+    val flexibleScale: Double = 1.0,
+    val rows: List<CategoryTargetDto> = emptyList(),
+)
+
+@Serializable
+data class BudgetPlanDto(
+    val incomeCents: Long = 0,
+    val incomeSource: String = "plan",
+    val bar: IncomeBarDto = IncomeBarDto(),
+    val cardBudget: CardBudgetDto = CardBudgetDto(),
+    val categoryTargets: CategoryTargetsDto = CategoryTargetsDto(),
 )
 
 @Serializable
