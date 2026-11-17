@@ -172,6 +172,9 @@ class ApiClient(
         send("POST", "/api/v1/review/undo-auto", body = body)
     }
 
+    /** Spending envelopes for the pay period in progress (server 0.40+). */
+    suspend fun envelopes(): EnvelopesResponse = decode(send("GET", "/api/v1/envelopes"))
+
     /** A repeating charge: [action] is "add" (make it a monthly bill) or "dismiss". */
     suspend fun repeat(key: String, action: String) {
         val body = buildJsonObject {

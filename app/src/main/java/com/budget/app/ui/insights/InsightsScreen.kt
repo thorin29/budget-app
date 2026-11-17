@@ -85,13 +85,27 @@ fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCate
             return@LazyColumn
         }
 
-        s.budget?.let { b ->
-            item { IncomeBarCard(b) }
-            item { CardBudgetCard(b, extras.cards?.cards?.associate { it.id to it.color } ?: emptyMap()) }
-            item { CategoryTargetsCard(b, onOpenCategory) }
-        } ?: s.limit?.let { l -> item { LimitCard(l) } }
+        // Server 0.40+: the envelopes for this pay period lead, in place of the budget cards and pace.
+        val env = extras.envelopes?.takeIf { extras.insightsMonth == null }
+        if (env != null) {
+            item { EnvelopeHero(env) }
+            if (env.message != null) item { EnvelopeMessage(env) }
+            if ((env.lastPeriod?.leftoverCents ?: 0) >= 100) item { EnvelopeLeftover(env) }
+            item { PaycheckStepsCard(env) }
+            listOf("FLEXIBLE", "ESSENTIAL", "PLANNED").forEach { tier ->
+                if (env.groups.any { it.tier == tier }) item { EnvelopeTierCard(env, tier, onOpenCategory) }
+            }
+            item { AffordCard(env) }
+            item { Text("Looking back", color = c.ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, top = 6.dp)) }
+        } else {
+            s.budget?.let { b ->
+                item { IncomeBarCard(b) }
+                item { CardBudgetCard(b, extras.cards?.cards?.associate { it.id to it.color } ?: emptyMap()) }
+                item { CategoryTargetsCard(b, onOpenCategory) }
+            } ?: s.limit?.let { l -> item { LimitCard(l) } }
+        }
         item { Totals(s) }
-        s.pace?.let { p -> item { PaceCard(p, s.leftAfterBillsCents, s.weekCents) } }
+        if (env == null) s.pace?.let { p -> item { PaceCard(p, s.leftAfterBillsCents, s.weekCents) } }
         if (s.payoff.isNotEmpty()) item { PayoffCard(s.payoff) }
         if (s.payingOff.isNotEmpty()) item { PayingOffCard(s.payingOff) }
         if (s.upcoming.isNotEmpty()) item { ComingUpCard(s.upcoming) }

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.14.0]
+
+Needs server 0.40.
+
+- Spending envelopes. Today shows the flexible money left until payday, and a sentence when an
+  envelope is used up. Insights leads with where each paycheck goes, every envelope (tap one for
+  its categories), and "Can I afford it?", which shows what a purchase would take from the other
+  envelopes. Limits and the envelopes themselves are set on the web.
+
 ## [0.13.1]
 
 Needs server 0.39.2.

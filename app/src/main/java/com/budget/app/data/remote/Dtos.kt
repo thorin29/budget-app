@@ -242,6 +242,69 @@ data class ReviewResponse(
     val count: Int = 0,
 )
 
+// ------------------------------------------------------------ envelopes (server 0.40+)
+
+@Serializable
+data class EnvelopeCategoryDto(val id: String? = null, val name: String = "", val spentCents: Long = 0)
+
+@Serializable
+data class EnvelopeDto(
+    val id: String,
+    val name: String = "",
+    /** ESSENTIAL, PLANNED or FLEXIBLE. */
+    val tier: String = "FLEXIBLE",
+    val limitCents: Long = 0,
+    val spentCents: Long = 0,
+    /** What it brought in from earlier pay periods; null for a plain flexible envelope. */
+    val carriedCents: Long? = null,
+    val automatic: Boolean = true,
+    val averageCents: Long = 0,
+    val leftCents: Long = 0,
+    val overCents: Long = 0,
+    val gaveCents: Long = 0,
+    val saveUp: Boolean = false,
+    val saveUpTargetCents: Long? = null,
+    val categories: List<EnvelopeCategoryDto> = emptyList(),
+)
+
+@Serializable
+data class EnvelopePeriodDto(val from: String = "", val next: String = "", val daysLeft: Int = 0, val days: Int = 0, val perYear: Int = 12, val byPayday: Boolean = false)
+
+@Serializable
+data class EnvelopeDebtDto(
+    val perPeriodCents: Long = 0,
+    val automatic: Boolean = true,
+    val name: String? = null,
+    val balanceCents: Long? = null,
+    val endsOn: String? = null,
+    val doneOn: String? = null,
+    val neededCents: Long? = null,
+)
+
+@Serializable
+data class EnvelopeLastPeriodDto(val from: String = "", val to: String = "", val leftoverCents: Long = 0)
+
+@Serializable
+data class EnvelopesResponse(
+    val period: EnvelopePeriodDto = EnvelopePeriodDto(),
+    val incomeCents: Long = 0,
+    val billsCents: Long = 0,
+    val essentialCents: Long = 0,
+    val plannedCents: Long = 0,
+    val flexibleCents: Long = 0,
+    val unassignedCents: Long = 0,
+    val planShortCents: Long = 0,
+    val debt: EnvelopeDebtDto = EnvelopeDebtDto(),
+    val flexibleLeftCents: Long = 0,
+    val perDayCents: Long = 0,
+    val shortCents: Long = 0,
+    /** ok, low, empty or short. */
+    val standing: String = "ok",
+    val message: String? = null,
+    val lastPeriod: EnvelopeLastPeriodDto? = null,
+    val groups: List<EnvelopeDto> = emptyList(),
+)
+
 // ------------------------------------------------------------ insights (server 0.27+)
 
 @Serializable

@@ -171,6 +171,13 @@ fun TodayScreen(
                 }
             }
 
+            // Server 0.40+: the flexible money left this pay period. Opens Insights.
+            val envelopes = extras.envelopes
+            if (envelopes != null) {
+                item { com.budget.app.ui.insights.EnvelopeHero(envelopes, Modifier.clickable(onClick = onOpenInsights)) }
+                if (envelopes.message != null) item { com.budget.app.ui.insights.EnvelopeMessage(envelopes) }
+            }
+
             val toReview = extras.review?.let { it.looksPaid.size + it.recorded.size } ?: 0
             if (toReview > 0) item {
                 Row(
@@ -242,8 +249,11 @@ fun TodayScreen(
                     }
                 }
 
-                extras.insights?.limit?.takeIf { it.limitCents > 0 }?.let { l ->
-                    item { LimitRow(l, onClick = onOpenInsights) }
+                // The monthly limit, on servers before 0.40; the envelopes near the top replace it.
+                if (extras.envelopes == null) {
+                    extras.insights?.limit?.takeIf { it.limitCents > 0 }?.let { l ->
+                        item { LimitRow(l, onClick = onOpenInsights) }
+                    }
                 }
                 extras.insights?.upcoming?.firstOrNull()?.let { u ->
                     item { ComingUpRow(u, onClick = onOpenInsights) }

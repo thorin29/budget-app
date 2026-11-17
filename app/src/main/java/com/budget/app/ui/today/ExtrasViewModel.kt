@@ -7,6 +7,7 @@ import com.budget.app.data.remote.ApiException
 import com.budget.app.data.remote.AutoRecordedDto
 import com.budget.app.data.remote.CardsResponse
 import com.budget.app.data.remote.CategoryDetailResponse
+import com.budget.app.data.remote.EnvelopesResponse
 import com.budget.app.data.remote.InsightsResponse
 import com.budget.app.data.remote.LooksPaidDto
 import com.budget.app.data.remote.RepeatDto
@@ -23,6 +24,8 @@ data class ExtrasUi(
     val cards: CardsResponse? = null,
     val review: ReviewResponse? = null,
     val insights: InsightsResponse? = null,
+    /** Null on a server older than 0.40. */
+    val envelopes: EnvelopesResponse? = null,
     /** The month Insights shows, YYYY-MM; null for the month in progress. */
     val insightsMonth: String? = null,
     val category: CategoryDetailResponse? = null,
@@ -49,8 +52,10 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
             val cards = async { runCatching { c.api.cards() }.getOrNull() }
             val review = async { runCatching { c.api.review() }.getOrNull() }
             val insights = async { runCatching { c.api.insights(_ui.value.insightsMonth) }.getOrNull() }
+            val envelopes = async { runCatching { c.api.envelopes() }.getOrNull() }
             val (cr, rr, ir) = Triple(cards.await(), review.await(), insights.await())
-            _ui.update { it.copy(cards = cr ?: it.cards, review = rr ?: it.review, insights = ir ?: it.insights) }
+            val er = envelopes.await()
+            _ui.update { it.copy(cards = cr ?: it.cards, review = rr ?: it.review, insights = ir ?: it.insights, envelopes = er ?: it.envelopes) }
         }
     }
 

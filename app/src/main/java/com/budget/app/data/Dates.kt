@@ -15,6 +15,14 @@ object Dates {
         return runCatching { LocalDate.parse(iso.substring(0, 10)).format(SHORT) }.getOrNull()
     }
 
+    /** "2028-02-11" → "Feb 2028". */
+    fun monthYear(iso: String?): String? {
+        if (iso.isNullOrBlank() || iso.length < 10) return null
+        return runCatching { LocalDate.parse(iso.substring(0, 10)).format(MONTH_YEAR) }.getOrNull()
+    }
+
+    private val MONTH_YEAR = DateTimeFormatter.ofPattern("MMM yyyy", Locale.US)
+
     fun monthTitle(year: Int, month: Int): String = YearMonth.of(year, month).format(MONTH)
 
     /** "November". */
