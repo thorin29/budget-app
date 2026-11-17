@@ -1,20 +1,25 @@
 package com.budget.app.data
 
-import com.budget.app.data.remote.EnvelopesResponse
+import com.budget.app.data.remote.MonthPlanResponse
 
-/** The words of the spending plan alerts. Pure, so it can be tested. */
+/** The words of the spending plan alert. Pure, so it can be tested. */
 object PlanAlerts {
-    /** Payday: the debt payment, bills to hold, what goes to the cards. Null without a plan. */
-    fun payday(v: EnvelopesResponse): Pair<String, String>? {
-        val p = v.payday ?: return null
-        val sent = p.cards.sumOf { it.sendCents }
-        val zero = p.cards.filter { it.owedCents > 0 }.all { it.result == "zero" }
-        val parts = listOfNotNull(
-            if (p.debtCents > 0) "${Money.whole(p.debtCents)} to ${p.debtName ?: "the 0% card"}" else null,
-            "hold ${Money.whole(p.holdCents)} for bills",
-            if (sent > 0) "${Money.whole(sent)} to the cards" + if (zero) " (pays them to zero)" else "" else null,
-        )
-        val title = if (p.forCardsCents < 0) "Payday: checking is short ${Money.whole(-p.forCardsCents)}" else "Payday plan"
-        return title to parts.joinToString(", ").replaceFirstChar { it.uppercase() } + ". ${Money.whole(p.afterCents)} stays in checking."
+    /** Under this much safe to spend, the month is running low. */
+    const val LOW_CENTS = 20_000L
+
+    /** "low" or "over" when the month's total calls for an alert; null otherwise. Never per budget. */
+    fun level(v: MonthPlanResponse): String? = when {
+        v.closed -> null
+        v.safeCents < 0 -> "over"
+        v.safeCents < LOW_CENTS -> "low"
+        else -> null
+    }
+
+    fun words(v: MonthPlanResponse): Pair<String, String>? = when (level(v)) {
+        "over" -> "Over by ${Money.whole(-v.safeCents)} this month" to
+            "After bills and the groceries, fuel and other essentials still to come, the month has nothing left for extras. Anything more lands on a card that can't be paid in full."
+        "low" -> "${Money.whole(v.safeCents)} safe to spend this month" to
+            "That's what's left for extras for the rest of the month, after bills and the essentials still to come."
+        else -> null
     }
 }

@@ -63,7 +63,7 @@ private fun monthShort(year: Int, month: Int) = YearMonth.of(year, month).format
 
 /** The Insights tab, as on the web: totals, pace, payoff, suggestions, charts, categories and more. */
 @Composable
-fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCategory: (String) -> Unit = {}, onEnvelopesByMonth: (Boolean) -> Unit = {}) {
+fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCategory: (String) -> Unit = {}) {
     val c = Budget.colors
     val s = extras.insights
     LazyColumn(
@@ -85,19 +85,15 @@ fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCate
             return@LazyColumn
         }
 
-        // Server 0.40+: the envelopes for this pay period lead, in place of the budget cards and pace.
-        val env = extras.envelopes?.takeIf { extras.insightsMonth == null }
+        // Server 0.43+: the month's spending plan leads, in place of the budget cards and pace.
+        val env = extras.plan?.takeIf { p -> extras.insightsMonth == null || p.month == extras.insightsMonth }
         if (env != null) {
-            if (env.period.byPayday || env.period.view == "month") item { EnvelopeViewToggle(extras.envelopesByMonth, onEnvelopesByMonth) }
-            item { EnvelopeHero(env) }
-            if (env.message != null) item { EnvelopeMessage(env) }
-            if ((env.lastPeriod?.leftoverCents ?: 0) >= 100) item { EnvelopeLeftover(env) }
-            item { PaycheckStepsCard(env) }
-            if (env.payday != null) item { PaydayPlanCard(env) }
-            listOf("FLEXIBLE", "ESSENTIAL", "PLANNED").forEach { tier ->
-                if (env.groups.any { it.tier == tier }) item { EnvelopeTierCard(env, tier, onOpenCategory) }
+            item { PlanHero(env) }
+            if (!env.closed) item { WhatIfCard(env) }
+            item { PlanAddsUpCard(env) }
+            listOf("ESSENTIAL", "FLEXIBLE", "UNPLANNED", "SORT").forEach { tier ->
+                if (env.groups.any { it.tier == tier }) item { PlanTierCard(env, tier, onOpenCategory) }
             }
-            if (env.history.size >= 2) item { PeriodHistoryCard(env) }
             item { Text("Looking back", color = c.ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp, top = 6.dp)) }
         } else {
             s.budget?.let { b ->

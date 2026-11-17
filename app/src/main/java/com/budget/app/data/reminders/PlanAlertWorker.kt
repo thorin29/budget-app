@@ -15,19 +15,18 @@ import androidx.work.WorkerParameters
 import com.budget.app.BudgetApp
 import com.budget.app.MainActivity
 import com.budget.app.R
-import com.budget.app.data.Money
 import com.budget.app.data.PlanAlerts
 import com.budget.app.data.SessionState
 import com.budget.app.data.Settings
 import com.budget.app.ui.theme.BrandBlue
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 
 /**
- * Spending plan alerts (server 0.42+): on payday morning, what the payday plan
- * says to do; and once per pay period, when the money left runs out. Each
- * posts at most once. Needs the server; offline, it tries next run.
+ * The running-low alert (server 0.43+): one alert on the month's total, when
+ * safe to spend drops under $200, and another if it goes over. Never per
+ * budget. Each posts at most once a month. Needs the server; offline, it
+ * tries next run.
  */
 class PlanAlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
@@ -36,25 +35,18 @@ class PlanAlertWorker(context: Context, params: WorkerParameters) : CoroutineWor
         if (c.session.state.value is SessionState.Loading) c.session.load()
         if (c.session.state.value !is SessionState.SignedIn) return Result.success()
         val plan = try {
-            c.api.envelopes(false)
+            c.api.plan()
         } catch (_: Exception) {
             return Result.success()
         }
-        val today = LocalDate.now().toString()
-        if (plan.period.from == today && c.settings.get(Settings.PLAN_PAYDAY_LAST) != today) {
-            PlanAlerts.payday(plan)?.let { (title, body) ->
-                c.settings.set(Settings.PLAN_PAYDAY_LAST, today)
-                post(title, body, PAYDAY_ID)
-            }
-        }
-        if ((plan.standing == "empty" || plan.standing == "short") && c.settings.get(Settings.PLAN_EMPTY_LAST) != plan.period.from) {
-            c.settings.set(Settings.PLAN_EMPTY_LAST, plan.period.from)
-            val left = plan.allLeftCents ?: plan.flexibleLeftCents
-            post(
-                if (left < 0) "${Money.whole(-left)} over until payday" else "Nothing left to spend until payday",
-                plan.message ?: "Anything more goes on a card you can't pay in full.",
-                EMPTY_ID,
-            )
+        val level = PlanAlerts.level(plan) ?: return Result.success()
+        val key = "${plan.month}:$level"
+        // Low then over is two alerts; low twice is one.
+        val last = c.settings.get(Settings.PLAN_EMPTY_LAST)
+        if (last == key || (level == "low" && last == "${plan.month}:over")) return Result.success()
+        PlanAlerts.words(plan)?.let { (title, body) ->
+            c.settings.set(Settings.PLAN_EMPTY_LAST, key)
+            post(title, body, EMPTY_ID)
         }
         return Result.success()
     }
@@ -65,7 +57,7 @@ class PlanAlertWorker(context: Context, params: WorkerParameters) : CoroutineWor
         if (manager != null && manager.getNotificationChannel(CHANNEL) == null) {
             manager.createNotificationChannel(
                 NotificationChannel(CHANNEL, "Spending plan", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = "The payday plan, and when the money left until payday runs out"
+                    description = "When what's safe to spend this month runs low or goes over"
                 },
             )
         }
@@ -94,7 +86,6 @@ class PlanAlertWorker(context: Context, params: WorkerParameters) : CoroutineWor
     companion object {
         private const val NAME = "plan-alerts"
         private const val CHANNEL = "spending-plan"
-        private const val PAYDAY_ID = 2004
         private const val EMPTY_ID = 2005
         private const val MORNING_HOUR = 8
 

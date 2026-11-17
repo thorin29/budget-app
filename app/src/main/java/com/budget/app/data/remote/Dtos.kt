@@ -242,115 +242,110 @@ data class ReviewResponse(
     val count: Int = 0,
 )
 
-// ------------------------------------------------------------ envelopes (server 0.40+)
+// ------------------------------------------------------------ the month's spending plan (server 0.43+)
 
 @Serializable
-data class EnvelopeCategoryDto(val id: String? = null, val name: String = "", val spentCents: Long = 0)
-
-@Serializable
-data class EnvelopeDto(
-    val id: String,
+data class PlanTxnDto(
+    val id: String = "",
+    val date: String = "",
     val name: String = "",
-    /** ESSENTIAL, PLANNED or FLEXIBLE. */
-    val tier: String = "FLEXIBLE",
-    val limitCents: Long = 0,
-    val spentCents: Long = 0,
-    /** What it brought in from earlier pay periods; null for a plain flexible envelope. */
-    val carriedCents: Long? = null,
-    val automatic: Boolean = true,
-    val averageCents: Long = 0,
-    val leftCents: Long = 0,
-    val overCents: Long = 0,
-    val gaveCents: Long = 0,
-    val saveUp: Boolean = false,
-    val saveUpTargetCents: Long? = null,
-    val categories: List<EnvelopeCategoryDto> = emptyList(),
+    /** Spending is positive; a refund is negative. */
+    val cents: Long = 0,
+    val pending: Boolean = false,
+    /** Part of a charge split by item. */
+    val split: Boolean = false,
 )
 
 @Serializable
-data class EnvelopePeriodDto(val from: String = "", val next: String = "", val daysLeft: Int = 0, val days: Int = 0, val perYear: Int = 12, val byPayday: Boolean = false, val view: String = "period")
+data class PlanCategoryDto(val id: String? = null, val name: String = "", val spentCents: Long = 0, val transactions: List<PlanTxnDto> = emptyList())
 
 @Serializable
-data class TierTotalDto(val leftCents: Long = 0, val overCents: Long = 0)
-
-@Serializable
-data class EnvelopeDebtDto(
-    val perPeriodCents: Long = 0,
-    val automatic: Boolean = true,
-    /** set, plan or minimum. */
-    val source: String = "plan",
-    val name: String? = null,
-    val balanceCents: Long? = null,
-    val endsOn: String? = null,
-    val doneOn: String? = null,
-    val neededCents: Long? = null,
-)
-
-@Serializable
-data class EnvelopeLastPeriodDto(val from: String = "", val to: String = "", val leftoverCents: Long = 0)
-
-@Serializable
-data class PlanCardDto(
+data class PlanGroupDto(
     val id: String = "",
     val name: String = "",
-    val color: String? = null,
+    /** ESSENTIAL, FLEXIBLE, UNPLANNED, or SORT for spending that needs a category or a budget. */
+    val tier: String = "FLEXIBLE",
+    val manualCents: Long? = null,
+    val usualCents: Long = 0,
+    /** Null for unplanned. */
+    val limitCents: Long? = null,
+    val automatic: Boolean = true,
+    val spentCents: Long = 0,
+    val leftCents: Long? = null,
+    val overCents: Long = 0,
+    /** Extras only: what can still be spent here without the month coming up short. */
+    val roomCents: Long? = null,
+    val categories: List<PlanCategoryDto> = emptyList(),
+)
+
+@Serializable
+data class PlanIncomeDto(val lineItemId: String = "", val name: String = "", val dueOn: String = "", val cents: Long = 0, val received: Boolean = false)
+
+@Serializable
+data class PlanIncomeTotalsDto(val totalCents: Long = 0, val receivedCents: Long = 0, val items: List<PlanIncomeDto> = emptyList())
+
+@Serializable
+data class PlanBillDto(
+    val lineItemId: String = "",
+    val name: String = "",
     val dueOn: String = "",
-    val statementCents: Long = 0,
-    val owedCents: Long = 0,
-    val sendCents: Long = 0,
-    /** zero, statement, short or none. */
-    val result: String = "none",
+    val cents: Long = 0,
+    /** paid, due, overdue or skipped. */
+    val status: String = "due",
+    val paidOn: String? = null,
+    /** YYYY-MM, when it's an unpaid bill from an earlier month. */
+    val from: String? = null,
 )
 
 @Serializable
-data class PlanBillDto(val name: String = "", val dueOn: String = "", val cents: Long = 0)
-
-@Serializable
-data class PaydayPlanDto(
-    val isPayday: Boolean = false,
-    val checkingCents: Long = 0,
-    val holdCents: Long = 0,
-    val debtCents: Long = 0,
-    val debtName: String? = null,
-    val debtDueOn: String? = null,
-    val forCardsCents: Long = 0,
-    val cards: List<PlanCardDto> = emptyList(),
-    val bills: List<PlanBillDto> = emptyList(),
-    val leftOnCardsCents: Long = 0,
-    val afterCents: Long = 0,
+data class PlanBillsDto(
+    val totalCents: Long = 0,
+    val paidCents: Long = 0,
+    val items: List<PlanBillDto> = emptyList(),
+    val otherCents: Long = 0,
+    val other: List<PlanTxnDto> = emptyList(),
 )
 
 @Serializable
-data class PeriodHistoryDto(val from: String = "", val to: String = "", val inCents: Long = 0, val outCents: Long = 0, val current: Boolean = false)
+data class PlanDebtDto(
+    val cents: Long = 0,
+    /** set, plan, paid, minimum or none. */
+    val source: String = "none",
+    val name: String? = null,
+    val dueOn: String? = null,
+    val balanceCents: Long? = null,
+    val endsOn: String? = null,
+    val targetCents: Long? = null,
+    /** YYYY-MM */
+    val doneIn: String? = null,
+)
 
 @Serializable
-data class EnvelopesResponse(
-    val period: EnvelopePeriodDto = EnvelopePeriodDto(),
-    /** Server 0.41+: every envelope's money left, less any overage nothing covered (negative when over). */
-    val allLeftCents: Long? = null,
-    val allOverCents: Long = 0,
-    val byTier: Map<String, TierTotalDto> = emptyMap(),
-    /** due: bills due in this period. average: a share of the year. */
-    val basis: String = "average",
-    val incomeCents: Long = 0,
-    val billsCents: Long = 0,
-    val essentialCents: Long = 0,
-    val plannedCents: Long = 0,
-    val flexibleCents: Long = 0,
-    val unassignedCents: Long = 0,
-    val planShortCents: Long = 0,
-    val debt: EnvelopeDebtDto = EnvelopeDebtDto(),
-    val flexibleLeftCents: Long = 0,
-    val perDayCents: Long = 0,
+data class MonthPlanResponse(
+    /** YYYY-MM */
+    val month: String = "",
+    val today: String = "",
+    val closed: Boolean = false,
+    val daysLeft: Int = 0,
+    val daysInMonth: Int = 30,
+    val income: PlanIncomeTotalsDto = PlanIncomeTotalsDto(),
+    val bills: PlanBillsDto = PlanBillsDto(),
+    val debt: PlanDebtDto = PlanDebtDto(),
+    val poolCents: Long = 0,
+    val spentCents: Long = 0,
+    val poolLeftCents: Long = 0,
+    val stillToComeCents: Long = 0,
+    /** Negative is "over by". */
+    val safeCents: Long = 0,
+    val essentialLimitCents: Long = 0,
+    val flexibleLimitCents: Long = 0,
+    val gapCents: Long = 0,
     val shortCents: Long = 0,
-    /** ok, low, empty or short. */
+    val unplannedUsualCents: Long = 0,
+    /** ok, low or over. */
     val standing: String = "ok",
     val message: String? = null,
-    val lastPeriod: EnvelopeLastPeriodDto? = null,
-    val groups: List<EnvelopeDto> = emptyList(),
-    /** Server 0.42+: what to do with the paycheck, and money in and out per recent period. */
-    val payday: PaydayPlanDto? = null,
-    val history: List<PeriodHistoryDto> = emptyList(),
+    val groups: List<PlanGroupDto> = emptyList(),
 )
 
 // ------------------------------------------------------------ insights (server 0.27+)

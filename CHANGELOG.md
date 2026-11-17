@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.17.0]
+
+Needs server 0.43.
+
+- The spending plan is monthly. The headline on Today and Insights is **safe to spend** on extras this
+  month, after every bill and the essentials still to come, or "Over by".
+- **How it adds up:** money in, bills (paid, due, overdue), the debt payment, the pool, spent, left
+  and essentials still to come. Tap a line to see what's in it.
+- Each budget opens to its categories, and each category to its transactions. Extras show their
+  room, which is never more than safe to spend.
+- **Can we afford it?** with one or more purchases, worked out on the phone.
+- Earlier months on Insights show their plan.
+- One running-low alert, on the month's total: when safe to spend drops under $200, and again if it
+  goes over. The payday alert is gone until cash timing returns.
+
 ## [0.16.0]
 
 Needs server 0.42.

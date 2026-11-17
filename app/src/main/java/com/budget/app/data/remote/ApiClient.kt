@@ -172,8 +172,8 @@ class ApiClient(
         send("POST", "/api/v1/review/undo-auto", body = body)
     }
 
-    /** Spending envelopes for the pay period in progress (server 0.40+). */
-    suspend fun envelopes(month: Boolean = false): EnvelopesResponse = decode(send("GET", "/api/v1/envelopes" + if (month) "?view=month" else ""))
+    /** The month's spending plan (server 0.43+); [month] is YYYY-MM, null for this month. */
+    suspend fun plan(month: String? = null): MonthPlanResponse = decode(send("GET", "/api/v1/plan" + if (month != null) "?month=$month" else ""))
 
     /** A repeating charge: [action] is "add" (make it a monthly bill) or "dismiss". */
     suspend fun repeat(key: String, action: String) {
