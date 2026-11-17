@@ -118,30 +118,32 @@ fun TodayScreen(
             }
             ui.error?.let { e -> item { Banner(e, c.danger, c.dangerSoft, icon = Ph.WARNING) } }
 
-            item {
-                val p = ui.projection
+            if (view != null) item {
+                // As on the web: the bills account's balance, then what's left after each half's bills.
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .background(c.accent, RoundedCornerShape(24.dp))
-                        .clickable { if (p == null || p.balanceMissing) view?.let(onEditBalance) else onOpenPlan() }
+                        .clickable { onEditBalance(view) }
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Safe to send today", color = c.onAccent.copy(alpha = 0.9f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                        PhIcon(Ph.ARROW_RIGHT, null, c.onAccent, size = 20.dp)
-                    }
-                    if (p == null || p.balanceMissing) {
-                        Text("—", color = c.onAccent, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("Add the bills balance to see this.", color = c.onAccent.copy(alpha = 0.9f), fontSize = 14.sp)
-                    } else {
-                        Text(Money.format(maxOf(p.safeToPayCents, 0L)), color = c.onAccent, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp)
                         Text(
-                            "Lowest point ${Money.format(p.lowPoint.balanceCents)} on ${Dates.short(p.lowPoint.date) ?: "—"} · next ${p.horizonDays} days",
-                            color = c.onAccent.copy(alpha = 0.9f), fontSize = 14.sp,
+                            "${view.billsAccountName ?: "Bills account"} balance",
+                            color = c.onAccent.copy(alpha = 0.9f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
                         )
+                        PhIcon(Ph.PENCIL, null, c.onAccent, size = 18.dp)
                     }
+                    Text(
+                        view.billsBalanceCents?.let { Money.format(it) } ?: "—",
+                        color = c.onAccent, fontSize = 44.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp,
+                    )
+                    Text(
+                        if (view.billsBalanceCents == null) "Add the balance to see what's left after bills." else "Tap to update it if the bank hasn't yet.",
+                        color = c.onAccent.copy(alpha = 0.9f), fontSize = 14.sp,
+                    )
                 }
             }
 
@@ -174,11 +176,13 @@ fun TodayScreen(
             if (view != null) {
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        val first = view.transferAfterFirstCents
+                        val owedFirst = (view.halves.firstOrNull()?.remainingCents ?: 0L) + view.carriedCents
                         Tile(
-                            label = view.billsAccountName ?: "Bills account",
-                            value = view.billsBalanceCents?.let { Money.format(it) } ?: "Add",
-                            icon = Ph.PENCIL,
-                            onClick = { onEditBalance(view) },
+                            label = "First half remaining",
+                            value = first?.let { Money.format(it) } ?: "—",
+                            valueColor = if ((first ?: 0) < 0) c.danger else c.ink,
+                            detail = "${Money.format(owedFirst)} still owed before the ${ordinal(view.splitDay)}${if (view.splitPayday != null) " payday" else ""}",
                             modifier = Modifier.weight(1f),
                         )
                         val free = view.transferAfterSecondCents
@@ -186,6 +190,7 @@ fun TodayScreen(
                             label = "Second half remaining",
                             value = free?.let { Money.format(it) } ?: "—",
                             valueColor = if ((free ?: 0) < 0) c.danger else c.ink,
+                            detail = "${Money.format(view.totalRemainingCents)} still owed this month",
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -268,6 +273,7 @@ private fun Tile(
     modifier: Modifier = Modifier,
     icon: Ph? = null,
     valueColor: Color = Budget.colors.ink,
+    detail: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
     val c = Budget.colors
@@ -284,7 +290,14 @@ private fun Tile(
             if (icon != null) PhIcon(icon, null, c.muted, size = 18.dp)
         }
         Text(value, color = valueColor, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        if (detail != null) Text(detail, color = c.muted, fontSize = 12.sp, lineHeight = 16.sp)
     }
+}
+
+/** 1 → "1st", 15 → "15th", 22 → "22nd". */
+private fun ordinal(n: Int): String {
+    val suffix = if (n % 100 in 11..13) "th" else when (n % 10) { 1 -> "st"; 2 -> "nd"; 3 -> "rd"; else -> "th" }
+    return "$n$suffix"
 }
 
 @Composable

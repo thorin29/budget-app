@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1]
+
+- Today leads with the bills account balance, then First half remaining and Second half
+  remaining with what's still owed, as on the web. "Safe to send today" and the lowest point
+  are under More → What can I pay?.
+- The Cards tab shows a small copy of each card (its colors, name and last digits) instead of a
+  color swatch.
+
 ## [0.6.0]
 
 Best with server 0.30; on an older server the new parts show what they can.

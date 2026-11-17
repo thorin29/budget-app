@@ -36,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -150,14 +151,7 @@ private fun CardRow(card: CardDto) {
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .size(width = 34.dp, height = 22.dp)
-                .background(
-                    Brush.linearGradient(listOf(Color(CardLogic.argb(card.color.from)), Color(CardLogic.argb(card.color.to)))),
-                    RoundedCornerShape(5.dp),
-                ),
-        )
+        MiniCard(card)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(CardLogic.faceName(card.name), color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -187,6 +181,42 @@ private fun CardRow(card: CardDto) {
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                 )
             }
+        }
+    }
+}
+
+/** A small copy of the card's face: its colors, a chip, and the last digits. */
+@Composable
+private fun MiniCard(card: CardDto) {
+    val dark = card.color.ink == "dark"
+    val ink = if (dark) Color(0xFF15181D) else Color.White
+    Box(
+        Modifier
+            .size(width = 52.dp, height = 33.dp)
+            .shadow(2.dp, RoundedCornerShape(5.dp))
+            .background(
+                Brush.linearGradient(listOf(Color(CardLogic.argb(card.color.from)), Color(CardLogic.argb(card.color.to)))),
+                RoundedCornerShape(5.dp),
+            )
+            .padding(horizontal = 5.dp, vertical = 4.dp),
+    ) {
+        // The chip.
+        Box(
+            Modifier
+                .align(Alignment.CenterStart)
+                .size(width = 9.dp, height = 7.dp)
+                .background(ink.copy(alpha = 0.35f), RoundedCornerShape(1.5.dp)),
+        )
+        Text(
+            CardLogic.faceName(card.name).take(10),
+            color = ink, fontSize = 6.sp, lineHeight = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+            modifier = Modifier.align(Alignment.TopStart),
+        )
+        card.lastDigits?.let {
+            Text(
+                it, color = ink.copy(alpha = 0.8f), fontSize = 6.sp, lineHeight = 7.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+                modifier = Modifier.align(Alignment.BottomEnd),
+            )
         }
     }
 }
