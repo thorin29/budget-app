@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0]
+
+Needs server 0.28 or later; on an older server these simply don't show.
+
+- Card stack on Today: an All cards summary in front (what to pay this cycle, next due date, and
+  the balance split into on statements and new since), then each card in the color picked on the
+  web. Swipe the front card either way, or tap it, and it slides to the back.
+- Review: a "to review" row on Today opens the charges that look like bill payments (Review and
+  record, then Confirm with the bank's amount and date, or Not this) and the payments recorded on
+  their own (Undo).
+- Everyday spending on Today: this month against your average, and the top categories.
+- Payments recorded on their own from the bank read "Paid … · auto". "Free after month" is now
+  "Second half remaining", as on the web.
+
 ## [0.4.0]
 
 - Bill reminders (More → Bill reminders): a notification around 8 AM on the day a bill is due, or

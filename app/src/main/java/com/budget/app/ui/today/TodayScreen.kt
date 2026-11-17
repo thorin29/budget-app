@@ -40,6 +40,8 @@ import com.budget.app.data.remote.MonthView
 import com.budget.app.data.sync.Overlay
 import com.budget.app.ui.common.Banner
 import com.budget.app.ui.common.BillTile
+import com.budget.app.ui.cards.CardStack
+import com.budget.app.data.remote.InsightsResponse
 import com.budget.app.ui.month.MonthViewModel
 import com.budget.app.ui.record.toneColor
 import com.budget.app.ui.theme.Budget
@@ -56,6 +58,8 @@ fun TodayScreen(
     onOpenMonth: () -> Unit,
     onOpenPlan: () -> Unit,
     onOpenMore: () -> Unit,
+    extras: ExtrasUi = ExtrasUi(),
+    onOpenReview: () -> Unit = {},
 ) {
     val c = Budget.colors
     val ui by vm.ui.collectAsState()
@@ -136,6 +140,32 @@ fun TodayScreen(
                 }
             }
 
+            val toReview = extras.review?.let { it.looksPaid.size + it.recorded.size } ?: 0
+            if (toReview > 0) item {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(c.accentSoft, RoundedCornerShape(16.dp))
+                        .clickable(onClick = onOpenReview)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(28.dp).background(c.accent, RoundedCornerShape(14.dp)), contentAlignment = Alignment.Center) {
+                        Text("$toReview", color = c.onAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Text(
+                        "to review: payments from the bank",
+                        color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f).padding(start = 12.dp),
+                    )
+                    PhIcon(Ph.CARET_RIGHT, null, c.accent, size = 20.dp)
+                }
+            }
+
+            extras.cards?.takeIf { it.cards.isNotEmpty() }?.let { cards ->
+                item { CardStack(cards) }
+            }
+
             if (view != null) {
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -148,7 +178,7 @@ fun TodayScreen(
                         )
                         val free = view.transferAfterSecondCents
                         Tile(
-                            label = "Free after month",
+                            label = "Second half remaining",
                             value = free?.let { Money.format(it) } ?: "—",
                             valueColor = if ((free ?: 0) < 0) c.danger else c.ink,
                             modifier = Modifier.weight(1f),
@@ -177,6 +207,8 @@ fun TodayScreen(
                         due.forEach { e -> DueRow(e, onClick = { onRecord(e) }) }
                     }
                 }
+
+                extras.insights?.takeIf { it.everydayCents > 0 || it.categories.isNotEmpty() }?.let { s -> item { SpendingCard(s) } }
             } else if (!ui.loading) {
                 item { Text("Nothing loaded yet. Pull it in once you're online.", color = c.muted, modifier = Modifier.padding(4.dp)) }
             }
@@ -271,6 +303,51 @@ private fun DueRow(e: MonthEntry, onClick: () -> Unit) {
                 Modifier.size(44.dp).background(c.accentSoft, RoundedCornerShape(22.dp)),
                 contentAlignment = Alignment.Center,
             ) { PhIcon(Ph.CHECK_CIRCLE, "Record ${e.name}", c.accent, size = 22.dp) }
+        }
+    }
+}
+
+/** This month's everyday spending against the average, and where most of it went. */
+@Composable
+private fun SpendingCard(s: InsightsResponse) {
+    val c = Budget.colors
+    val max = (s.categories.maxOfOrNull { maxOf(it.cents, it.averageCents) } ?: 1L).coerceAtLeast(1L)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(c.surface, RoundedCornerShape(20.dp))
+            .border(1.dp, c.line, RoundedCornerShape(20.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("Everyday spending", color = c.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text(Money.format(s.everydayCents), color = c.ink, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        if (s.everydayAverageCents > 0) {
+            val diff = s.everydayCents - s.everydayAverageCents
+            Text(
+                if (kotlin.math.abs(diff) < 1_000) "About your ${Money.format(s.everydayAverageCents)} average"
+                else "${Money.format(kotlin.math.abs(diff))} ${if (diff > 0) "more" else "less"} than your ${Money.format(s.everydayAverageCents)} average",
+                color = c.muted, fontSize = 13.sp,
+            )
+        }
+        s.categories.take(4).forEach { cat ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row {
+                    Text(cat.name, color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Text(Money.format(cat.cents), color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Box(Modifier.fillMaxWidth().height(6.dp).background(c.raised, RoundedCornerShape(3.dp))) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth((cat.cents.toFloat() / max).coerceIn(0f, 1f))
+                            .height(6.dp)
+                            .background(c.accent, RoundedCornerShape(3.dp)),
+                    )
+                }
+            }
+        }
+        if (s.uncategorizedCount > 0) {
+            Text("${s.uncategorizedCount} charge${if (s.uncategorizedCount == 1) "" else "s"} without a category. Sort them on the web.", color = c.muted, fontSize = 12.sp)
         }
     }
 }

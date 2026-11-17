@@ -83,6 +83,9 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
     val todayVm: MonthViewModel = viewModel(key = "today") { MonthViewModel(container) }
     val monthVm: MonthViewModel = viewModel(key = "month") { MonthViewModel(container) }
     val planVm: PlanViewModel = viewModel(key = "plan") { PlanViewModel(container) }
+    val extrasVm: com.budget.app.ui.today.ExtrasViewModel = viewModel(key = "extras") { com.budget.app.ui.today.ExtrasViewModel(container) }
+    val extras by extrasVm.ui.collectAsState()
+    var showReview by rememberSaveable { mutableStateOf(false) }
     val update by container.updates.available.collectAsState()
 
     var record by remember { mutableStateOf<RecordRequest?>(null) }
@@ -111,7 +114,10 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
     // Showing a tab refreshes it, so a change made on one shows on the others.
     LaunchedEffect(tab) {
         when (tab) {
-            Tab.TODAY -> todayVm.load()
+            Tab.TODAY -> {
+                todayVm.load()
+                extrasVm.load()
+            }
             Tab.MONTH -> monthVm.load()
             Tab.PLAN -> planVm.load()
             Tab.MORE -> Unit
@@ -119,18 +125,31 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
     }
 
     BackHandler(enabled = tab != Tab.TODAY && !showUpdate) { tab = Tab.TODAY }
+    BackHandler(enabled = tab == Tab.TODAY && showReview) {
+        showReview = false
+        todayVm.load()
+    }
 
     Column(Modifier.fillMaxSize().background(c.background)) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (tab) {
-                Tab.TODAY -> com.budget.app.ui.today.TodayScreen(
-                    vm = todayVm,
-                    onRecord = { record = RecordRequest(todayVm, it) },
-                    onEditBalance = { editingBalanceOf = todayVm },
-                    onOpenMonth = { tab = Tab.MONTH },
-                    onOpenPlan = { tab = Tab.PLAN },
-                    onOpenMore = { tab = Tab.MORE },
-                )
+                Tab.TODAY -> if (showReview) {
+                    com.budget.app.ui.review.ReviewScreen(extrasVm, onBack = {
+                        showReview = false
+                        todayVm.load()
+                    })
+                } else {
+                    com.budget.app.ui.today.TodayScreen(
+                        vm = todayVm,
+                        onRecord = { record = RecordRequest(todayVm, it) },
+                        onEditBalance = { editingBalanceOf = todayVm },
+                        onOpenMonth = { tab = Tab.MONTH },
+                        onOpenPlan = { tab = Tab.PLAN },
+                        onOpenMore = { tab = Tab.MORE },
+                        extras = extras,
+                        onOpenReview = { showReview = true },
+                    )
+                }
                 Tab.MONTH -> MonthScreen(monthVm, onRecord = { record = RecordRequest(monthVm, it) })
                 Tab.PLAN -> PlanScreen(planVm, onEditBalance = { editingBalanceOf = todayVm })
                 Tab.MORE -> if (showUpdate) {

@@ -117,6 +117,44 @@ class ApiClient(
         send("PUT", "/api/v1/months/$year/$month/balance", body = body, idempotencyKey = idempotencyKey)
     }
 
+    // ------------------------------------------------------------ bank feed (server 0.27+)
+
+    suspend fun cards(): CardsResponse = decode(send("GET", "/api/v1/cards"))
+
+    suspend fun review(): ReviewResponse = decode(send("GET", "/api/v1/review"))
+
+    suspend fun insights(): InsightsResponse = decode(send("GET", "/api/v1/insights"))
+
+    /** The confirm step for a charge that looks like a bill payment. */
+    suspend fun confirmReview(item: LooksPaidDto, amountCents: Long, paidOn: String, idempotencyKey: String) {
+        val body = buildJsonObject {
+            put("lineItemId", item.lineItemId)
+            put("year", item.year)
+            put("month", item.month)
+            put("txnId", item.txnId)
+            put("amount", Money.toDecimal(amountCents))
+            put("paidOn", paidOn)
+        }.toString()
+        send("POST", "/api/v1/review/confirm", body = body, idempotencyKey = idempotencyKey)
+    }
+
+    suspend fun dismissReview(item: LooksPaidDto) {
+        val body = buildJsonObject {
+            put("lineItemId", item.lineItemId)
+            put("txnId", item.txnId)
+        }.toString()
+        send("POST", "/api/v1/review/dismiss", body = body)
+    }
+
+    suspend fun undoAuto(item: AutoRecordedDto) {
+        val body = buildJsonObject {
+            put("lineItemId", item.lineItemId)
+            put("year", item.year)
+            put("month", item.month)
+        }.toString()
+        send("POST", "/api/v1/review/undo-auto", body = body)
+    }
+
     // ------------------------------------------------------------ plumbing
 
     private inline fun <reified T> decode(text: String): T = json.decodeFromString(text)

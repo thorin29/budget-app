@@ -11,14 +11,17 @@ data class EntryStatus(val text: String, val tone: Tone)
 
 /** The short line under an entry's name. Pure, so it is unit-tested. */
 object EntryStatuses {
+    /** Recorded on its own from a bank charge. */
+    private fun auto(e: MonthEntry): String = if (e.autoPaid) " · auto" else ""
+
     fun of(e: MonthEntry, today: LocalDate = LocalDate.now()): EntryStatus {
         val due = Dates.dueDate(e.year, e.month, e.dueDay)
         val dueText = due?.let { Dates.short(it.toString()) }
         if (e.isIncome) {
-            return if (e.settled) EntryStatus(Dates.short(e.paidOn)?.let { "Received $it" } ?: "Received", Tone.MUTED)
+            return if (e.settled) EntryStatus((Dates.short(e.paidOn)?.let { "Received $it" } ?: "Received") + auto(e), Tone.MUTED)
             else EntryStatus(dueText?.let { "Expected $it" } ?: "Expected", Tone.MUTED)
         }
-        if (e.settled) return EntryStatus(Dates.short(e.paidOn)?.let { "Paid $it" } ?: "Paid", Tone.MUTED)
+        if (e.settled) return EntryStatus((Dates.short(e.paidOn)?.let { "Paid $it" } ?: "Paid") + auto(e), Tone.MUTED)
         if (e.carriedFrom != null) return EntryStatus("Still owed from ${Dates.monthName(e.year, e.month)}", Tone.DANGER)
         if (due == null || dueText == null) return EntryStatus("Not paid yet", Tone.MUTED)
         val days = ChronoUnit.DAYS.between(today, due)
