@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1]
+
+Needs server 0.39.2.
+
+- Today's balance shows when the bank itself last updated it ("Bank data as of 4:12 AM") and when
+  the server last checked.
+
 ## [0.13.0]
 
 Needs server 0.39.

@@ -155,7 +155,11 @@ fun TodayScreen(
                     Text(
                         when {
                             fromBank && extras.bankSyncing -> "Reading the bank…"
-                            fromBank -> listOfNotNull("From the bank", (view.bankSyncedAt ?: view.billsBalanceAsOf)?.let { Dates.stamp(it) }?.let { "updated $it" }).joinToString(" · ")
+                            // The bank's own date first: a sync only picks up what the bridge already has.
+                            fromBank -> listOfNotNull(
+                                view.billsBankDataAt?.let { Dates.stamp(it) }?.let { "Bank data as of $it" } ?: "From the bank",
+                                (view.bankSyncedAt ?: view.billsBalanceAsOf)?.let { Dates.stamp(it) }?.let { "checked $it" },
+                            ).joinToString(" · ")
                             view.billsBalanceCents == null -> "Add the balance to see what's left after bills."
                             else -> "Tap to update it if the bank hasn't yet."
                         },

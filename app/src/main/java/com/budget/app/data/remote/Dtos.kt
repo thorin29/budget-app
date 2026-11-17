@@ -96,6 +96,8 @@ data class MonthView(
     val billsBalanceAsOf: String? = null,
     val billsBalanceFromBank: Boolean = false,
     val bankSyncedAt: String? = null,
+    /** Server 0.39.2+: when the bridge last got the bills account from the bank. */
+    val billsBankDataAt: String? = null,
     val billsAccountId: String? = null,
     val billsAccountName: String? = null,
     val transferAfterFirstCents: Long? = null,
