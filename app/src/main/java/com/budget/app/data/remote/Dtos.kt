@@ -236,7 +236,12 @@ data class InsightsResponse(
     val pace: PaceDto? = null,
     /** Server 0.29+: suggestions from the last six complete months, most worthwhile first. */
     val suggestions: List<SuggestionDto> = emptyList(),
+    /** Server 0.31+: yearly charges expected in the next 45 days. */
+    val upcoming: List<UpcomingDto> = emptyList(),
 )
+
+@Serializable
+data class UpcomingDto(val merchant: String = "", val expectedOn: String = "", val cents: Long = 0, val years: Int = 1)
 
 @Serializable
 data class PaceDto(

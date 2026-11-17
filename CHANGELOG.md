@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.0]
+
+- Coming up: the next yearly charge (a membership or renewal) shows on Today a few weeks ahead,
+  and Insights lists every one due in the next 45 days. Needs server 0.31.
+
 ## [0.6.1]
 
 - Today leads with the bills account balance, then First half remaining and Second half

@@ -37,7 +37,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.budget.app.data.Dates
 import com.budget.app.data.Money
+import com.budget.app.data.remote.UpcomingDto
 import com.budget.app.data.PaceLogic
 import com.budget.app.data.remote.InsightsResponse
 import com.budget.app.data.remote.PaceDto
@@ -69,6 +71,7 @@ fun InsightsScreen(extras: ExtrasUi) {
             return@LazyColumn
         }
         s.pace?.let { p -> item { PaceCard(p) } }
+        if (s.upcoming.isNotEmpty()) item { ComingUpCard(s.upcoming) }
         if (s.suggestions.isNotEmpty()) {
             item {
                 val keep = s.suggestions.sumOf { it.monthlyCents }
@@ -166,6 +169,35 @@ private fun SuggestionRow(s: SuggestionDto) {
                         color = c.ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                     )
                 }
+            }
+        }
+    }
+}
+
+/** Yearly charges expected soon. Plan or hide them on the web. */
+@Composable
+private fun ComingUpCard(items: List<UpcomingDto>) {
+    val c = Budget.colors
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(c.surface, RoundedCornerShape(20.dp))
+            .border(1.dp, c.line, RoundedCornerShape(20.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text("Coming up", color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text("Yearly charges due in the next 45 days, from bank history. Add them as bills on the web.", color = c.muted, fontSize = 13.sp)
+        items.forEach { u ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(u.merchant, color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        "Around ${Dates.short(u.expectedOn) ?: u.expectedOn}" + if (u.years >= 2) " · ${u.years} years running" else "",
+                        color = c.muted, fontSize = 13.sp,
+                    )
+                }
+                Text(Money.format(u.cents), color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -43,6 +43,7 @@ import com.budget.app.ui.common.BillTile
 import com.budget.app.data.CardLogic
 import com.budget.app.data.remote.CardsResponse
 import com.budget.app.data.remote.SuggestionDto
+import com.budget.app.data.remote.UpcomingDto
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.Brush
 import com.budget.app.ui.month.MonthViewModel
@@ -218,6 +219,9 @@ fun TodayScreen(
                     }
                 }
 
+                extras.insights?.upcoming?.firstOrNull()?.let { u ->
+                    item { ComingUpRow(u, onClick = onOpenInsights) }
+                }
                 extras.insights?.let { ins ->
                     ins.suggestions.firstOrNull()?.let { top ->
                         item { SuggestionCard(top, more = ins.suggestions.size - 1, onClick = onOpenInsights) }
@@ -401,5 +405,27 @@ private fun SuggestionCard(s: SuggestionDto, more: Int, onClick: () -> Unit) {
             if (more > 0) "See all ${more + 1} in Insights" else "Open Insights",
             color = c.accent, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+/** The next yearly charge, so it doesn't catch anyone off guard. Opens Insights. */
+@Composable
+private fun ComingUpRow(u: UpcomingDto, onClick: () -> Unit) {
+    val c = Budget.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(c.warnSoft, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PhIcon(Ph.CALENDAR, null, c.warn, size = 20.dp)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text("Coming up: ${u.merchant}", color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("Yearly charge around ${Dates.short(u.expectedOn) ?: u.expectedOn}", color = c.muted, fontSize = 13.sp)
+        }
+        Text(Money.format(u.cents), color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
     }
 }
