@@ -6,6 +6,7 @@ import com.budget.app.AppContainer
 import com.budget.app.data.remote.ApiException
 import com.budget.app.data.remote.AutoRecordedDto
 import com.budget.app.data.remote.CardsResponse
+import com.budget.app.data.remote.CategoryDetailResponse
 import com.budget.app.data.remote.InsightsResponse
 import com.budget.app.data.remote.LooksPaidDto
 import com.budget.app.data.remote.ReviewResponse
@@ -21,6 +22,9 @@ data class ExtrasUi(
     val cards: CardsResponse? = null,
     val review: ReviewResponse? = null,
     val insights: InsightsResponse? = null,
+    /** The month Insights shows, YYYY-MM; null for the month in progress. */
+    val insightsMonth: String? = null,
+    val category: CategoryDetailResponse? = null,
     val busy: Boolean = false,
     /** A short note after an action ("Recorded.") or why it failed. */
     val message: String? = null,
@@ -39,9 +43,25 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
         viewModelScope.launch {
             val cards = async { runCatching { c.api.cards() }.getOrNull() }
             val review = async { runCatching { c.api.review() }.getOrNull() }
-            val insights = async { runCatching { c.api.insights() }.getOrNull() }
+            val insights = async { runCatching { c.api.insights(_ui.value.insightsMonth) }.getOrNull() }
             val (cr, rr, ir) = Triple(cards.await(), review.await(), insights.await())
             _ui.update { it.copy(cards = cr ?: it.cards, review = rr ?: it.review, insights = ir ?: it.insights) }
+        }
+    }
+
+    /** Insights for another month (YYYY-MM), or the month in progress for null. */
+    fun showInsightsMonth(month: String?) {
+        _ui.update { it.copy(insightsMonth = month) }
+        viewModelScope.launch {
+            runCatching { c.api.insights(month) }.getOrNull()?.let { r -> _ui.update { it.copy(insights = r) } }
+        }
+    }
+
+    fun openCategory(id: String?) {
+        _ui.update { it.copy(category = null) }
+        if (id == null) return
+        viewModelScope.launch {
+            runCatching { c.api.categoryDetail(id, _ui.value.insightsMonth) }.getOrNull()?.let { r -> _ui.update { it.copy(category = r) } }
         }
     }
 

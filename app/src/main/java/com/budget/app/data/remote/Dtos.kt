@@ -220,7 +220,63 @@ data class ReviewResponse(
 // ------------------------------------------------------------ insights (server 0.27+)
 
 @Serializable
-data class CategorySpendDto(val name: String = "", val cents: Long = 0, val averageCents: Long = 0)
+data class CategorySpendDto(
+    val id: String? = null,
+    val name: String = "",
+    val cents: Long = 0,
+    val averageCents: Long = 0,
+    /** Server 0.32+: the same month a year before, when history reaches that far. */
+    val lastYearCents: Long? = null,
+)
+
+@Serializable
+data class MonthTotalDto(val year: Int = 0, val month: Int = 0, val everydayCents: Long = 0, val billsCents: Long = 0, val inCents: Long = 0, val netCents: Long = 0)
+
+@Serializable
+data class MerchantSpendDto(val merchant: String = "", val cents: Long = 0, val count: Int = 0)
+
+@Serializable
+data class ManagedDto(val name: String = "", val heldCents: Long = 0, val monthInCents: Long = 0, val monthOutCents: Long = 0)
+
+@Serializable
+data class LastYearDto(val everydayCents: Long = 0, val billsCents: Long = 0, val inCents: Long = 0)
+
+@Serializable
+data class PayoffDto(
+    val name: String = "",
+    val startCents: Long? = null,
+    val balanceCents: Long = 0,
+    val paidCents: Long? = null,
+    val endsOn: String = "",
+    val paymentsLeft: Int = 0,
+    val monthlyCents: Long = 0,
+    val planMonthlyCents: Long? = null,
+    val onTrack: Boolean = true,
+)
+
+@Serializable
+data class MonthAmountDto(val label: String = "", val cents: Long = 0)
+
+@Serializable
+data class CategoryMonthDto(val year: Int = 0, val month: Int = 0, val cents: Long = 0)
+
+@Serializable
+data class CategoryMerchantDto(val merchant: String = "", val cents: Long = 0, val count: Int = 0, val averageCents: Long = 0)
+
+@Serializable
+data class CategoryChargeDto(val id: String = "", val postedOn: String = "", val merchant: String = "", val account: String = "", val cents: Long = 0)
+
+/** Server 0.32+: GET /api/v1/insights/category. */
+@Serializable
+data class CategoryDetailResponse(
+    val id: String? = null,
+    val name: String = "",
+    val year: Int = 0,
+    val month: Int = 0,
+    val months: List<CategoryMonthDto> = emptyList(),
+    val merchants: List<CategoryMerchantDto> = emptyList(),
+    val charges: List<CategoryChargeDto> = emptyList(),
+)
 
 @Serializable
 data class InsightsResponse(
@@ -230,6 +286,7 @@ data class InsightsResponse(
     val everydayAverageCents: Long = 0,
     val billsCents: Long = 0,
     val inCents: Long = 0,
+    val netCents: Long = 0,
     val categories: List<CategorySpendDto> = emptyList(),
     val uncategorizedCount: Int = 0,
     /** Server 0.30+: the month in progress against a usual month by the same day. */
@@ -238,6 +295,16 @@ data class InsightsResponse(
     val suggestions: List<SuggestionDto> = emptyList(),
     /** Server 0.31+: yearly charges expected in the next 45 days. */
     val upcoming: List<UpcomingDto> = emptyList(),
+    // Server 0.32+:
+    /** What the bills account has left after this month's bills and paychecks. */
+    val leftAfterBillsCents: Long? = null,
+    val weekCents: Long? = null,
+    val lastYear: LastYearDto? = null,
+    val months: List<MonthTotalDto> = emptyList(),
+    val changes: List<CategorySpendDto> = emptyList(),
+    val merchants: List<MerchantSpendDto> = emptyList(),
+    val managed: List<ManagedDto> = emptyList(),
+    val payoff: List<PayoffDto> = emptyList(),
 )
 
 @Serializable
@@ -251,6 +318,7 @@ data class PaceDto(
     val usualByNowCents: Long = 0,
     val usualMonthCents: Long = 0,
     val projectedCents: Long = 0,
+    val restOnCardsCents: Long = 0,
 )
 
 @Serializable
@@ -264,4 +332,7 @@ data class SuggestionDto(
     val detail: String = "",
     val monthlyCents: Long = 0,
     val items: List<SuggestionItemDto> = emptyList(),
+    val categoryId: String? = null,
+    /** What was actually spent each complete month, oldest first. */
+    val months: List<MonthAmountDto> = emptyList(),
 )

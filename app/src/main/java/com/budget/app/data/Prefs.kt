@@ -43,6 +43,9 @@ class Settings(private val store: DataStore<Preferences>) {
         /** Card payment reminders: off, 0, 1, 3 or 5 days before (plus the due date itself). */
         const val CARD_REMINDER_LEAD = "card_reminder_lead"
         const val CARD_REMINDER_LAST_DAY = "card_reminder_last_day"
+        /** The Sunday summary: "on" or unset. */
+        const val WEEKLY_SUMMARY = "weekly_summary"
+        const val WEEKLY_SUMMARY_LAST = "weekly_summary_last"
         const val THEME_MODE = "theme_mode"
         const val ACCENT = "accent"
     }

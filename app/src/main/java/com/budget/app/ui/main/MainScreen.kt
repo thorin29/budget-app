@@ -95,6 +95,18 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
     // "What can I pay?" opens over More, from More or from Today's balance card.
     var showPlan by rememberSaveable { mutableStateOf(false) }
     var planFromToday by rememberSaveable { mutableStateOf(false) }
+    // A category opened from Insights.
+    var showCategory by rememberSaveable { mutableStateOf(false) }
+
+    // Opened from the weekly summary: straight to Insights.
+    val openInsights by container.openInsights.collectAsState()
+    LaunchedEffect(openInsights) {
+        if (openInsights) {
+            tab = Tab.INSIGHTS
+            showCategory = false
+            container.openInsights.value = false
+        }
+    }
 
     // Opened from a card reminder: straight to the Cards tab.
     val openCards by container.openCards.collectAsState()
@@ -138,6 +150,7 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
     }
 
     BackHandler(enabled = tab != Tab.TODAY && !showUpdate) { tab = Tab.TODAY }
+    BackHandler(enabled = tab == Tab.INSIGHTS && showCategory) { showCategory = false }
     BackHandler(enabled = tab == Tab.MORE && showPlan) {
         showPlan = false
         if (planFromToday) tab = Tab.TODAY
@@ -177,7 +190,18 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
                 }
                 Tab.MONTH -> MonthScreen(monthVm, onRecord = { record = RecordRequest(monthVm, it) })
                 Tab.CARDS -> com.budget.app.ui.cards.CardsScreen(container, extras)
-                Tab.INSIGHTS -> com.budget.app.ui.insights.InsightsScreen(extras)
+                Tab.INSIGHTS -> if (showCategory) {
+                    com.budget.app.ui.insights.CategoryScreen(extras.category, onBack = { showCategory = false })
+                } else {
+                    com.budget.app.ui.insights.InsightsScreen(
+                        extras,
+                        onMonth = { extrasVm.showInsightsMonth(it) },
+                        onOpenCategory = {
+                            extrasVm.openCategory(it)
+                            showCategory = true
+                        },
+                    )
+                }
                 Tab.MORE -> when {
                     showUpdate -> UpdateScreen(container, onBack = { showUpdate = false })
                     showPlan -> PlanScreen(planVm, onEditBalance = { editingBalanceOf = todayVm }, onBack = {
@@ -193,6 +217,7 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
             }
         }
         BottomBar(tab, updateAvailable = update != null, onSelect = {
+            if (it == Tab.INSIGHTS && it == tab) showCategory = false
             if (it == Tab.MORE && (it == tab || planFromToday)) {
                 showUpdate = false
                 showPlan = false

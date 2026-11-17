@@ -123,7 +123,13 @@ class ApiClient(
 
     suspend fun review(): ReviewResponse = decode(send("GET", "/api/v1/review"))
 
-    suspend fun insights(): InsightsResponse = decode(send("GET", "/api/v1/insights"))
+    /** [month] is YYYY-MM; the month in progress when null. */
+    suspend fun insights(month: String? = null): InsightsResponse =
+        decode(send("GET", "/api/v1/insights" + (month?.let { "?m=$it" } ?: "")))
+
+    /** One category up close; [id] is a category id or "none". */
+    suspend fun categoryDetail(id: String, month: String?): CategoryDetailResponse =
+        decode(send("GET", "/api/v1/insights/category?id=" + java.net.URLEncoder.encode(id, "UTF-8") + (month?.let { "&m=$it" } ?: "")))
 
     /** The confirm step for a charge that looks like a bill payment. */
     suspend fun confirmReview(item: LooksPaidDto, amountCents: Long, paidOn: String, idempotencyKey: String) {

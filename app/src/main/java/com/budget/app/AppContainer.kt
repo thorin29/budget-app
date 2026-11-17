@@ -7,6 +7,7 @@ import com.budget.app.data.EnrollLink
 import com.budget.app.data.CardReminderLead
 import com.budget.app.data.ReminderLead
 import com.budget.app.data.reminders.CardReminderWorker
+import com.budget.app.data.reminders.WeeklySummaryWorker
 import com.budget.app.data.reminders.BillReminderWorker
 import com.budget.app.data.ThemeMode
 import com.budget.app.data.Session
@@ -77,6 +78,17 @@ class AppContainer(context: Context) {
         settings.set(Settings.CARD_REMINDER_LAST_DAY, null)
         CardReminderWorker.sync(app, lead)
     }
+
+    /** The Sunday summary on this phone. Off unless turned on under More. */
+    val weeklySummary: Flow<Boolean> = settings.observe(Settings.WEEKLY_SUMMARY).map { it == "on" }
+
+    suspend fun setWeeklySummary(on: Boolean) {
+        settings.set(Settings.WEEKLY_SUMMARY, if (on) "on" else null)
+        WeeklySummaryWorker.sync(app, on)
+    }
+
+    /** Set when the app was opened from the weekly summary: show Insights. */
+    val openInsights = MutableStateFlow(false)
 
     suspend fun setAppearance(value: Appearance) {
         settings.set(Settings.THEME_MODE, value.mode.key)

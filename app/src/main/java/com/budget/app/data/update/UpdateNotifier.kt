@@ -41,6 +41,7 @@ object UpdateNotifier {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_budget)
+                .setColor(com.budget.app.ui.theme.BrandBlue)
             .setContentTitle("Update available")
             .setContentText("Version ${info.versionName} is ready to install.")
             .setContentIntent(pending)

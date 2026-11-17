@@ -109,6 +109,7 @@ class BillReminderWorker(context: Context, params: WorkerParameters) : Coroutine
             val style = NotificationCompat.InboxStyle().also { s -> message.lines.forEach { s.addLine(it) } }
             val notification = NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat_budget)
+                .setColor(com.budget.app.ui.theme.BrandBlue)
                 .setContentTitle(message.title)
                 .setContentText(message.body)
                 .setStyle(if (message.lines.size > 1) style else NotificationCompat.BigTextStyle().bigText(message.body))

@@ -35,10 +35,11 @@ class MainActivity : ComponentActivity() {
 
     private fun takeLink(intent: Intent?) {
         EnrollLinks.parse(intent?.data?.toString())?.let { container.pendingEnrollLink.value = it }
-        if (intent?.getStringExtra(EXTRA_OPEN_TAB) == "cards") {
-            container.openCards.value = true
-            intent.removeExtra(EXTRA_OPEN_TAB)
+        when (intent?.getStringExtra(EXTRA_OPEN_TAB)) {
+            "cards" -> container.openCards.value = true
+            "insights" -> container.openInsights.value = true
         }
+        intent?.removeExtra(EXTRA_OPEN_TAB)
         if (intent?.getStringExtra(UpdateNotifier.EXTRA_OPEN) == UpdateNotifier.OPEN_UPDATE) {
             container.openUpdate.value = true
             intent.removeExtra(UpdateNotifier.EXTRA_OPEN)

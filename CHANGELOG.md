@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.8.0]
+
+Needs server 0.32 for the new parts of Insights.
+
+- Insights matches the web: a month picker; everyday spending with the same month last year;
+  bills, money in and in minus out; pace with what's left after bills, what's still to come (and
+  how much lands on cards), and the last seven days; 0% payoff progress; coming up; suggestions
+  that open to each month's actual amounts with a small chart; where it went with the usual and
+  last year; what changed; top merchants; charts of everyday spending and in minus out by month;
+  and money managed for others.
+- Tap a category (or "See the charges" on a suggestion) for its own screen: twelve months, this
+  month's merchants against their usual, and the charges.
+- Weekly summary (More → Weekly summary): a Sunday evening notification with the week's spending,
+  the month's pace, what's left after bills and anything coming up. Off until turned on.
+- Notifications show the app's logo in its blue.
+
 ## [0.7.0]
 
 - Coming up: the next yearly charge (a membership or renewal) shows on Today a few weeks ahead,

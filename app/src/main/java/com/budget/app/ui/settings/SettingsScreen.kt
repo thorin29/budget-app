@@ -98,6 +98,10 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
     var showCardReminders by remember { mutableStateOf(false) }
     val cardLead by container.cardReminderLead.collectAsState(initial = CardReminderLead.OFF)
     val setCardLead = rememberCardReminderSetter(container)
+    val weekly by container.weeklySummary.collectAsState(initial = false)
+    val weeklyPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        scope.launch { container.setWeeklySummary(true) }
+    }
 
     Column(
         Modifier
@@ -164,6 +168,14 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
             Item(Ph.BELL, "Bill reminders", value = reminderLead.label, onClick = { showReminders = true })
             Divider()
             Item(Ph.CARD, "Card reminders", value = cardLead.short, onClick = { showCardReminders = true })
+            Divider()
+            Item(Ph.PIE, "Weekly summary", value = if (weekly) "Sundays" else "Off", onClick = {
+                if (!weekly && Build.VERSION.SDK_INT >= 33 && !BillReminderWorker.canPost(context)) {
+                    weeklyPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    scope.launch { container.setWeeklySummary(!weekly) }
+                }
+            })
         }
 
         SectionLabel("App", c.muted)

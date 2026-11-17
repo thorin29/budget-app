@@ -64,6 +64,8 @@ private fun tones(accent: Accent): Tones = when (accent) {
 
 /** The update badge colors, the same as the Kairos app's, whatever the accent. */
 val UpdateDot = Color(0xFF4FC3F7)
+/** The app icon's blue, as an ARGB int for notifications. */
+val BrandBlue: Int = 0xFF2851D6.toInt()
 val UpdatePill = Color(0xFF0B6FA4)
 
 /** The swatch shown for an accent in the picker (the light-mode tone). */
