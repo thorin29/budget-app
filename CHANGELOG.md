@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.1]
+
+- Cards can be thrown off either side of the screen. A swipe or quick flick sends the front card
+  off the way it was moving, and it eases in behind the others from that side, instead of
+  swinging back across to the right.
+
 ## [0.5.0]
 
 Needs server 0.28 or later; on an older server these simply don't show.

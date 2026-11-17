@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -64,8 +65,8 @@ private const val EASE_MS = 380
 
 /**
  * The card stack: the summary in front, each card fanned out behind it in the
- * color picked on the web. Swipe the front card either way, or tap it, and it
- * slides off and tucks in at the back.
+ * color picked on the web. Throw the front card off either side, or tap it,
+ * and it tucks in at the back.
  */
 @Composable
 fun CardStack(cards: CardsResponse, modifier: Modifier = Modifier) {
@@ -81,6 +82,8 @@ fun CardStack(cards: CardsResponse, modifier: Modifier = Modifier) {
         val cardHeight = cardWidth / 1.586f
         val fanPx = with(density) { FAN_DP.dp.toPx() }
         val outPx = with(density) { cardWidth.toPx() } * 0.75f
+        // Far enough that the thrown card leaves the screen entirely.
+        val throwPx = with(density) { (maxWidth + cardWidth).toPx() }
 
         // Every card eases to its slot whenever the order changes.
         LaunchedEffect(order, fanPx) {
@@ -89,10 +92,12 @@ fun CardStack(cards: CardsResponse, modifier: Modifier = Modifier) {
             }
         }
 
-        fun sendFrontToBack() {
+        // Throws the front card off the side it was swiped toward (right for a tap),
+        // then it eases in behind the others from that side.
+        fun sendFrontToBack(direction: Float = 1f) {
             val front = order.first()
             scope.launch {
-                offsets.getValue(front.key).animateTo(outPx, tween(200, easing = FastOutSlowInEasing))
+                offsets.getValue(front.key).animateTo(throwPx * direction, tween(240, easing = FastOutSlowInEasing))
                 order = CardLogic.next(order)
             }
         }
@@ -117,7 +122,7 @@ fun CardStack(cards: CardsResponse, modifier: Modifier = Modifier) {
                                     scaleX = scale
                                     scaleY = scale
                                     transformOrigin = TransformOrigin(0f, 0.5f)
-                                    rotationZ = if (front) (offset.value / outPx) * 6f else 0f
+                                    rotationZ = if (front) (offset.value / outPx).coerceIn(-2f, 2f) * 6f else 0f
                                     alpha = if (depth > 3) 0f else 1f
                                 }
                                 .size(cardWidth, cardHeight)
@@ -127,14 +132,25 @@ fun CardStack(cards: CardsResponse, modifier: Modifier = Modifier) {
                                     if (front) {
                                         Modifier
                                             .pointerInput(order) {
+                                                val tracker = VelocityTracker()
                                                 detectHorizontalDragGestures(
+                                                    onDragStart = { tracker.resetTracking() },
                                                     onDragEnd = {
-                                                        if (abs(offset.value) > outPx * 0.25f) sendFrontToBack()
-                                                        else scope.launch { offset.animateTo(0f, tween(220)) }
+                                                        val speed = tracker.calculateVelocity().x
+                                                        val far = abs(offset.value) > outPx * 0.25f
+                                                        val flung = abs(speed) > 900f
+                                                        if (far || flung) {
+                                                            // Go the way the card is moving; a quick flick wins over where it sits.
+                                                            val toward = if (flung) speed else offset.value
+                                                            sendFrontToBack(if (toward < 0f) -1f else 1f)
+                                                        } else {
+                                                            scope.launch { offset.animateTo(0f, tween(220)) }
+                                                        }
                                                     },
                                                     onDragCancel = { scope.launch { offset.animateTo(0f, tween(220)) } },
                                                 ) { change, amount ->
                                                     change.consume()
+                                                    tracker.addPosition(change.uptimeMillis, change.position)
                                                     scope.launch { offset.snapTo(offset.value + amount) }
                                                 }
                                             }
