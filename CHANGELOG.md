@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.12.0]
+
+- "Paying off" on Insights: bills paying off a balance, with what's left and when each ends.
+  Needs server 0.37.
+
 ## [0.11.0]
 
 Needs server 0.35 for the invite QR.

@@ -312,6 +312,21 @@ data class InsightsResponse(
     val limit: LimitDto? = null,
     /** Server 0.34+, month in progress: where the income goes, the card budget, category targets. */
     val budget: BudgetPlanDto? = null,
+    /** Server 0.37+: bills paying off a balance. */
+    val payingOff: List<PayingOffDto> = emptyList(),
+)
+
+@Serializable
+data class PayingOffDto(
+    val name: String = "",
+    val remainingCents: Long = 0,
+    val paidOff: Boolean = false,
+    val paymentsLeft: Int? = null,
+    val lastYear: Int? = null,
+    val lastMonth: Int? = null,
+    val plannedCents: Long = 0,
+    /** bank | balance */
+    val source: String = "balance",
 )
 
 @Serializable

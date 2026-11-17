@@ -45,6 +45,7 @@ import com.budget.app.data.Money
 import com.budget.app.data.PaceLogic
 import com.budget.app.data.remote.InsightsResponse
 import com.budget.app.data.remote.LimitDto
+import com.budget.app.data.remote.PayingOffDto
 import com.budget.app.data.remote.PaceDto
 import com.budget.app.data.remote.PayoffDto
 import com.budget.app.data.remote.SuggestionDto
@@ -92,6 +93,7 @@ fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCate
         item { Totals(s) }
         s.pace?.let { p -> item { PaceCard(p, s.leftAfterBillsCents, s.weekCents) } }
         if (s.payoff.isNotEmpty()) item { PayoffCard(s.payoff) }
+        if (s.payingOff.isNotEmpty()) item { PayingOffCard(s.payingOff) }
         if (s.upcoming.isNotEmpty()) item { ComingUpCard(s.upcoming) }
 
         if (s.suggestions.isNotEmpty()) {
@@ -366,6 +368,29 @@ private fun PayoffCard(rows: List<PayoffDto>) {
                         if (!r.onTrack && r.planMonthlyCents != null) " (the plan was ${Money.whole(r.planMonthlyCents)} a month)" else "",
                     color = c.muted, fontSize = 12.sp,
                 )
+            }
+        }
+    }
+}
+
+/** Bills paying off a balance: what's left and when each ends. */
+@Composable
+private fun PayingOffCard(rows: List<PayingOffDto>) {
+    val c = Budget.colors
+    Card("Paying off") {
+        rows.forEach { p ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(p.name, color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (p.paidOff) "Paid off: it has dropped off the plan."
+                        else "${p.paymentsLeft ?: "?"} payments of ${Money.whole(p.plannedCents)} left" +
+                            (if (p.lastYear != null && p.lastMonth != null) ", the last in ${monthShort(p.lastYear, p.lastMonth)} ${p.lastYear}" else "") +
+                            (if (p.source == "bank") " · from the bank" else ""),
+                        color = c.muted, fontSize = 12.sp,
+                    )
+                }
+                Text(if (p.paidOff) "Done" else Money.whole(p.remainingCents), color = c.ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
