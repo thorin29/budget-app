@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.20.0]
+
+Needs server 0.46.
+
+- **Pull down to refresh** on Today, This month, Cards, Insights and Plan: reloads from the server
+  and sends anything waiting (it doesn't ask the bank; the bank button on Today does that).
+- Where this month's money goes is a donut of money in, with a red outer ring when spending passes it.
+
 ## [0.19.0]
 
 Needs server 0.45.

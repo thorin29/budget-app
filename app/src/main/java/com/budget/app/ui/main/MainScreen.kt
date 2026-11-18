@@ -160,8 +160,35 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
         todayVm.load()
     }
 
+    // Pull down on a tab to reload it from the server (not the bank).
+    var pulled by remember { mutableStateOf(false) }
+    val todayLoading by todayVm.ui.collectAsState()
+    val monthLoading by monthVm.ui.collectAsState()
+    val busy = extras.refreshing || todayLoading.loading || monthLoading.loading
+    LaunchedEffect(pulled, busy) {
+        if (pulled && !busy) {
+            kotlinx.coroutines.delay(500)
+            pulled = false
+        }
+    }
+
     Column(Modifier.fillMaxSize().background(c.background)) {
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        com.budget.app.ui.common.PullRefresh(
+            refreshing = pulled,
+            onRefresh = {
+                pulled = true
+                when (tab) {
+                    Tab.TODAY -> {
+                        todayVm.load()
+                        extrasVm.load()
+                    }
+                    Tab.MONTH -> monthVm.load()
+                    Tab.CARDS, Tab.INSIGHTS -> extrasVm.load()
+                    Tab.MORE -> if (showPlan) planVm.load() else Unit
+                }
+            },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) {
             when (tab) {
                 Tab.TODAY -> if (showReview) {
                     com.budget.app.ui.review.ReviewScreen(extrasVm, onBack = {

@@ -44,6 +44,8 @@ data class ExtrasUi(
     val bankNote: String? = null,
     /** A short note after an action ("Recorded.") or why it failed. */
     val message: String? = null,
+    /** Reloading from the server. */
+    val refreshing: Boolean = false,
 )
 
 /**
@@ -57,6 +59,7 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
 
     fun load() {
         viewModelScope.launch {
+            _ui.update { it.copy(refreshing = true) }
             val cards = async { runCatching { c.api.cards() }.getOrNull() }
             val review = async { runCatching { c.api.review() }.getOrNull() }
             val insights = async { runCatching { c.api.insights(_ui.value.insightsMonth) }.getOrNull() }
@@ -74,6 +77,7 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
                     planNow = now ?: it.planNow, plan = (if (month == null) now else then) ?: it.plan,
                     cash = cash.await() ?: it.cash,
                     charts = charts.await() ?: it.charts,
+                    refreshing = false,
                 )
             }
         }

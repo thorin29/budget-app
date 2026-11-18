@@ -62,6 +62,7 @@ private fun Swatch(color: Color, label: String, value: String? = null, valueColo
     }
 }
 
+/** Where this month's money goes: a donut of money in, with a red outer ring for spending past it. */
 @Composable
 fun PoolBarCard(v: MonthPlanResponse) {
     val c = Budget.colors
@@ -80,27 +81,43 @@ fun PoolBarCard(v: MonthPlanResponse) {
     val left = income - out
     val total = maxOf(income, out, 1L).toFloat()
     val danger = c.danger
+    val pct = { cents: Long -> "${Math.round(cents * 100.0 / maxOf(1L, income))}%" }
     Panel {
         Text("Where this month's money goes", color = c.ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        Text("${Money.whole(v.income.totalCents)} in${if (v.closed) "" else ", spending so far"}", color = c.muted, fontSize = 12.sp)
-        Canvas(Modifier.padding(top = 10.dp).fillMaxWidth().height(28.dp)) {
-            var x = 0f
-            val gap = 2.dp.toPx()
-            parts.forEach { (_, cents, color) ->
-                val w = size.width * cents / total
-                drawRoundRect(color, Offset(x + gap / 2, 0f), Size(maxOf(0f, w - gap), size.height), CornerRadius(4.dp.toPx()))
-                x += w
+        Text("The circle is the month's ${Money.whole(income)} in${if (v.closed) "" else "; spending so far"}", color = c.muted, fontSize = 12.sp)
+        Row(Modifier.padding(top = 10.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(150.dp), contentAlignment = Alignment.Center) {
+                Canvas(Modifier.size(150.dp)) {
+                    val stroke = 20.dp.toPx()
+                    val outerGap = 9.dp.toPx()
+                    val inset = stroke / 2 + outerGap + 4.dp.toPx()
+                    val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
+                    val topLeft = Offset(inset, inset)
+                    drawArc(neutral.copy(alpha = if (left > 0) 1f else 0.35f), 0f, 360f, false, topLeft, arcSize, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                    var start = -90f
+                    parts.forEach { (_, cents, color) ->
+                        val sweep = 360f * cents / total
+                        if (sweep > 0.5f) drawArc(color, start + 0.6f, maxOf(0.1f, sweep - 1.2f), false, topLeft, arcSize, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                        start += sweep
+                    }
+                    if (out > income) {
+                        val o = Offset(size.width / 2 - (arcSize.width / 2 + stroke / 2 + 6.dp.toPx()), size.height / 2 - (arcSize.height / 2 + stroke / 2 + 6.dp.toPx()))
+                        val os = Size(arcSize.width + stroke + 12.dp.toPx(), arcSize.height + stroke + 12.dp.toPx())
+                        drawArc(danger, -90f + 360f * income / total, 360f * (out - income) / total, false, o, os,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(5.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round))
+                    }
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(Money.whole(kotlin.math.abs(left)), color = if (left < 0) danger else c.ink, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(if (left < 0) "over money in" else "not spent yet", color = c.muted, fontSize = 11.sp)
+                }
             }
-            if (left > 0) drawRoundRect(neutral, Offset(x + gap / 2, 0f), Size(maxOf(0f, size.width * left / total - gap), size.height), CornerRadius(4.dp.toPx()))
-            if (out > income) {
-                val m = size.width * income / total
-                drawLine(danger, Offset(m, 0f), Offset(m, size.height), strokeWidth = 2.dp.toPx())
+            Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                parts.forEach { (label, cents, color) -> Swatch(color, label, "${Money.whole(cents)}  ${pct(cents)}") }
+                Swatch(if (left >= 0) neutral else danger, if (left >= 0) "Not spent yet" else "Over", "${Money.whole(kotlin.math.abs(left))}  ${pct(kotlin.math.abs(left))}", if (left < 0) danger else null)
             }
         }
-        Column(Modifier.padding(top = 8.dp)) {
-            parts.forEach { (label, cents, color) -> Swatch(color, label, Money.whole(cents)) }
-            Swatch(if (left >= 0) neutral else danger, if (left >= 0) "Not spent yet" else "Over", Money.whole(kotlin.math.abs(left)), if (left < 0) danger else null)
-        }
+        if (out > income) Text("The red outer ring is the part of the month's spending past its money in.", color = danger, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
     }
 }
 
