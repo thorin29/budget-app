@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0]
+
+Needs server 0.45.
+
+- Charts on Insights, as on the web: where this month's money goes, whether spending is on pace,
+  the 0% balance against the end of the offer, and money in against money out by month.
+
 ## [0.18.0]
 
 Needs server 0.44.

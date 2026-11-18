@@ -346,7 +346,42 @@ data class MonthPlanResponse(
     val standing: String = "ok",
     val message: String? = null,
     val groups: List<PlanGroupDto> = emptyList(),
+    /** Server 0.45+: everything spent each day of the month. */
+    val daily: List<PlanDayDto> = emptyList(),
 )
+
+@Serializable
+data class PlanDayDto(val date: String = "", val spentCents: Long = 0)
+
+@Serializable
+data class MonthHistoryDto(
+    val month: String = "",
+    val inCents: Long = 0,
+    val billsCents: Long = 0,
+    val debtCents: Long = 0,
+    val spentCents: Long = 0,
+    val netCents: Long = 0,
+    val current: Boolean = false,
+)
+
+@Serializable
+data class DatedCentsDto(val date: String = "", val cents: Long = 0)
+
+@Serializable
+data class DebtChartDto(
+    val name: String? = null,
+    val endsOn: String = "",
+    val balanceCents: Long = 0,
+    val points: List<DatedCentsDto> = emptyList(),
+    val projected: List<DatedCentsDto> = emptyList(),
+    val target: List<DatedCentsDto> = emptyList(),
+    val monthlyCents: Long = 0,
+    val targetCents: Long? = null,
+)
+
+/** The plan's multi-month charts (server 0.45+). */
+@Serializable
+data class PlanChartsResponse(val history: List<MonthHistoryDto> = emptyList(), val debt: DebtChartDto? = null)
 
 @Serializable
 data class CashStepDto(

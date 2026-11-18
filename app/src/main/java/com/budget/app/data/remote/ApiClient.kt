@@ -184,6 +184,9 @@ class ApiClient(
         send("POST", "/api/v1/review/repeat", body = body)
     }
 
+    /** The plan's multi-month charts (server 0.45+). */
+    suspend fun planCharts(): PlanChartsResponse = decode(send("GET", "/api/v1/plan/charts"))
+
     /** Cash timing: checking through the rest of this month and next (server 0.44+). */
     suspend fun cash(): CashTimingResponse = decode(send("GET", "/api/v1/cash"))
 

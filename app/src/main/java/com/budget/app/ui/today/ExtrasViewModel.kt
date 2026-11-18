@@ -11,6 +11,7 @@ import com.budget.app.data.remote.CategoryDetailResponse
 import com.budget.app.data.remote.InsightsResponse
 import com.budget.app.data.remote.LooksPaidDto
 import com.budget.app.data.remote.MonthPlanResponse
+import com.budget.app.data.remote.PlanChartsResponse
 import com.budget.app.data.remote.RepeatDto
 import com.budget.app.data.remote.ReviewResponse
 import kotlinx.coroutines.async
@@ -31,6 +32,8 @@ data class ExtrasUi(
     val planNow: MonthPlanResponse? = null,
     /** Cash timing for this month and next. Null on a server older than 0.44. */
     val cash: CashTimingResponse? = null,
+    /** Recent months and the 0% balance. Null on a server older than 0.45. */
+    val charts: PlanChartsResponse? = null,
     /** The month Insights shows, YYYY-MM; null for the month in progress. */
     val insightsMonth: String? = null,
     val category: CategoryDetailResponse? = null,
@@ -61,6 +64,7 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
             val planNow = async { runCatching { c.api.plan() }.getOrNull() }
             val planThen = async { if (month == null) null else runCatching { c.api.plan(month) }.getOrNull() }
             val cash = async { runCatching { c.api.cash() }.getOrNull() }
+            val charts = async { runCatching { c.api.planCharts() }.getOrNull() }
             val (cr, rr, ir) = Triple(cards.await(), review.await(), insights.await())
             val now = planNow.await()
             val then = planThen.await()
@@ -69,6 +73,7 @@ class ExtrasViewModel(private val c: AppContainer) : ViewModel() {
                     cards = cr ?: it.cards, review = rr ?: it.review, insights = ir ?: it.insights,
                     planNow = now ?: it.planNow, plan = (if (month == null) now else then) ?: it.plan,
                     cash = cash.await() ?: it.cash,
+                    charts = charts.await() ?: it.charts,
                 )
             }
         }

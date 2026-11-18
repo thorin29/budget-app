@@ -92,6 +92,10 @@ fun InsightsScreen(extras: ExtrasUi, onMonth: (String?) -> Unit = {}, onOpenCate
             if (!env.closed) item { WhatIfCard(env) }
             item { PlanAddsUpCard(env, onMakeBill) }
             if (!env.closed) extras.cash?.let { cash -> item { CashTimingCard(cash) } }
+            item { PoolBarCard(env) }
+            if (!env.closed && env.daily.isNotEmpty()) item { PaceChartCard(env) }
+            if (!env.closed) extras.charts?.debt?.let { d -> item { DebtChartCard(d) } }
+            extras.charts?.history?.takeIf { it.size >= 2 }?.let { h -> item { HistoryChartCard(h) } }
             listOf("ESSENTIAL", "FLEXIBLE", "UNPLANNED", "SORT").forEach { tier ->
                 if (env.groups.any { it.tier == tier }) item { PlanTierCard(env, tier, onOpenCategory, onMakeBill) }
             }
