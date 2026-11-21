@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.21.0]
+
+Needs server 0.101 (with an older server, Today and Insights stay as they were).
+
+- **The app is called Ledger.**
+- **Today** leads with what's available to spend on the main card's statement (until it closes,
+  with about how much a day), then checking and the month's budget left, the statement so far,
+  **Needs You** (a bill pending at the bank, items to review, a budget past its limit, checking
+  running short) and the next bills, each with Record.
+- **Tracker** (was Month): a bill whose payment is already at the bank says "Pending at the bank";
+  a bill shows overdue only two days past its due day ("Due yesterday", "Due 2 days ago" before that).
+- **Cards** opens with the main card's statement: charged so far, bills still to land, the budget
+  left on it and the projected statement.
+- **Insights** is Overview (income vs expenses, the outlook in the worst and best case, last
+  month, debt) and Budget (the month, each card's statement, and by card), as on the web.
+- **More** has Review, Transactions (search, "Needs a category", pending, money in, and a sheet to
+  set a category or mark a transfer) and Notifications.
+- **Notifications:** 14 kinds, all off until turned on under More → Notifications, plus quiet
+  hours (9 PM – 7 AM). One job checks the server about every 30 minutes while any is on. The older
+  bill, card, weekly and plan reminders are replaced by these.
+
 ## [0.20.0]
 
 Needs server 0.46.

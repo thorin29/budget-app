@@ -90,7 +90,26 @@ class AppContainer(context: Context) {
     /** Set when the app was opened from the weekly summary: show Insights. */
     val openInsights = MutableStateFlow(false)
 
-    suspend fun setAppearance(value: Appearance) {
+    /** Set when the app was opened from a notification: the screen to show (today, tracker, cards, insights, budget, review, transactions). */
+    val openScreen = MutableStateFlow<String?>(null)
+
+    /** Which notifications are on, on this phone. All start off. */
+    val alertsOn: Flow<Set<com.budget.app.data.AlertKind>> = combine(
+        com.budget.app.data.AlertKind.entries.map { k -> settings.observe(k.setting).map { if (it == "on") k else null } },
+    ) { kinds -> kinds.filterNotNull().toSet() }
+
+    val quietHours: Flow<Boolean> = settings.observe(com.budget.app.data.AlertKind.QUIET).map { it != "off" }
+
+    suspend fun anyAlertOn(): Boolean = com.budget.app.data.AlertKind.entries.any { it != com.budget.app.data.AlertKind.UPDATE && settings.get(it.setting) == "on" }
+
+    suspend fun setAlert(kind: com.budget.app.data.AlertKind, on: Boolean) {
+        settings.set(kind.setting, if (on) "on" else null)
+        com.budget.app.data.reminders.AlertWorker.sync(app, anyAlertOn())
+    }
+
+    suspend fun setQuietHours(on: Boolean) = settings.set(com.budget.app.data.AlertKind.QUIET, if (on) null else "off")
+
+        suspend fun setAppearance(value: Appearance) {
         settings.set(Settings.THEME_MODE, value.mode.key)
         settings.set(Settings.ACCENT, value.accent.key)
     }

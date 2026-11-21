@@ -27,6 +27,8 @@ object UpdateNotifier {
     const val OPEN_UPDATE = "update"
 
     suspend fun notifyOnce(context: Context, settings: Settings, info: UpdateInfo) {
+        // Off unless turned on under More → Notifications; the More tab's dot still shows.
+        if (settings.get(com.budget.app.data.AlertKind.UPDATE.setting) != "on") return
         val last = settings.get(Settings.UPDATE_NOTIFIED)?.toIntOrNull() ?: 0
         if (info.versionCode <= last) return
         if (!canPost(context)) return
@@ -68,7 +70,7 @@ object UpdateNotifier {
         if (manager.getNotificationChannel(CHANNEL) != null) return
         manager.createNotificationChannel(
             NotificationChannel(CHANNEL, "App updates", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "When a new version of Budget is ready to install"
+                description = "When a new version of Ledger is ready to install"
             },
         )
     }

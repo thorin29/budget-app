@@ -57,10 +57,15 @@ data class MonthEntry(
     val autoPaid: Boolean = false,
     /** Tied to a bank charge. */
     val bankLinked: Boolean = false,
+    /** Unpaid, but its payment is already in the bank feed (server 0.100+). */
+    val pendingCharge: PendingChargeDto? = null,
 ) {
     val isIncome: Boolean get() = kind == "INCOME"
     val settled: Boolean get() = actualCents != null
 }
+
+@Serializable
+data class PendingChargeDto(val txnId: String = "", val cents: Long = 0, val postedOn: String = "", val pending: Boolean = false)
 
 @Serializable
 data class HalfInfo(val index: Int = 0, val label: String = "")

@@ -199,6 +199,47 @@ class ApiClient(
     /** Asks the server to read the bank now (skipped when it just did). */
     suspend fun syncBank(): BankSyncResponse = decode(send("POST", "/api/v1/bank/sync", body = "{}"))
 
+    // ------------------------------------------------------------ phone views (server 0.101+)
+
+    suspend fun today(): TodayResponse = decode(send("GET", "/api/v1/phone/today"))
+
+    /** [view]: "month", "cards" or a card's id. */
+    suspend fun budget(view: String = "month", month: String? = null): BudgetResponse = decode(
+        send("GET", "/api/v1/phone/budget", query = buildMap {
+            put("view", view)
+            if (month != null) put("month", month)
+        }),
+    )
+
+    suspend fun overview(month: String? = null): OverviewResponse =
+        decode(send("GET", "/api/v1/phone/overview", query = if (month != null) mapOf("month" to month) else emptyMap()))
+
+    suspend fun alerts(): AlertsResponse = decode(send("GET", "/api/v1/phone/alerts"))
+
+    /** [filter]: all, none (needs a category), pending, in. */
+    suspend fun transactions(filter: String = "all", search: String? = null): TxnListResponse = decode(
+        send("GET", "/api/v1/transactions", query = buildMap {
+            put("filter", filter)
+            if (!search.isNullOrBlank()) put("q", search)
+        }),
+    )
+
+    suspend fun categories(): List<CategoryDto> =
+        json.decodeFromString<CategoriesResponse>(send("GET", "/api/v1/categories")).categories
+
+    suspend fun setCategory(transactionId: String, categoryId: String?, forMerchant: Boolean): CategoryChangeResponse {
+        val body = buildJsonObject {
+            put("categoryId", categoryId)
+            put("forMerchant", forMerchant)
+        }.toString()
+        return decode(send("PUT", "/api/v1/transactions/" + java.net.URLEncoder.encode(transactionId, "UTF-8"), body = body))
+    }
+
+    suspend fun setTransfer(transactionId: String, on: Boolean): CategoryChangeResponse {
+        val body = buildJsonObject { put("transfer", on) }.toString()
+        return decode(send("PUT", "/api/v1/transactions/" + java.net.URLEncoder.encode(transactionId, "UTF-8"), body = body))
+    }
+
     // ------------------------------------------------------------ plumbing
 
     private inline fun <reified T> decode(text: String): T = json.decodeFromString(text)

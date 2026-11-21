@@ -62,7 +62,7 @@ import java.time.temporal.ChronoUnit
 
 /** The Cards tab: the stack, each card's payment, and the reminder setting. */
 @Composable
-fun CardsScreen(container: AppContainer, extras: ExtrasUi) {
+fun CardsScreen(container: AppContainer, extras: ExtrasUi, header: (@Composable () -> Unit)? = null) {
     val c = Budget.colors
     val lead by container.cardReminderLead.collectAsState(initial = CardReminderLead.OFF)
     var picking by remember { mutableStateOf(false) }
@@ -89,6 +89,7 @@ fun CardsScreen(container: AppContainer, extras: ExtrasUi) {
                 Text("No credit cards from the bank yet, or every card is paid off.", color = c.muted, modifier = Modifier.padding(4.dp))
             }
             else -> {
+                if (header != null) item { header() }
                 item { CardStack(cards) }
                 item {
                     Column(

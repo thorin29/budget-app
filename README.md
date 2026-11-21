@@ -1,4 +1,4 @@
-# Budget for Android
+# Ledger for Android
 
 The phone app for [Budget](https://github.com/thorin29/budget), the self-hosted
 budget planner. It talks to your own Budget server and nothing else (apart from

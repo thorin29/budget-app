@@ -64,10 +64,16 @@ import com.budget.app.ui.settings.MoreScreen
 import com.budget.app.ui.theme.Budget
 import com.budget.app.ui.theme.Ph
 import com.budget.app.ui.theme.PhIcon
+import com.budget.app.ui.phone.InsightsHome
+import com.budget.app.ui.phone.NotificationsScreen
+import com.budget.app.ui.phone.PhoneViewModel
+import com.budget.app.ui.phone.StatementHeader
+import com.budget.app.ui.phone.TodayHome
+import com.budget.app.ui.phone.TransactionsScreen
 
 enum class Tab(val label: String, val icon: Ph, val iconOn: Ph) {
     TODAY("Today", Ph.HOUSE, Ph.HOUSE_FILL),
-    MONTH("Month", Ph.CALENDAR, Ph.CALENDAR_FILL),
+    MONTH("Tracker", Ph.CALENDAR, Ph.CALENDAR_FILL),
     CARDS("Cards", Ph.CARD, Ph.CARD_FILL),
     INSIGHTS("Insights", Ph.PIE, Ph.PIE_FILL),
     MORE("More", Ph.LIST, Ph.LIST_FILL),
@@ -76,7 +82,10 @@ enum class Tab(val label: String, val icon: Ph, val iconOn: Ph) {
 /** Which month a record sheet works on, and what it opened on. */
 private data class RecordRequest(val vm: MonthViewModel, val entry: MonthEntry?)
 
-/** Signed in: five tabs along the bottom (Plan lives under More), and the record sheet over any of them. */
+/** What's open over More: one of its screens, or More itself. */
+private enum class MoreScreenKind { NONE, REVIEW, TRANSACTIONS, NOTIFICATIONS, UPDATE, PLAN }
+
+/** Signed in: five tabs along the bottom, and the record sheet over any of them. */
 @Composable
 fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
     val c = Budget.colors
@@ -85,30 +94,63 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
     val monthVm: MonthViewModel = viewModel(key = "month") { MonthViewModel(container) }
     val planVm: PlanViewModel = viewModel(key = "plan") { PlanViewModel(container) }
     val extrasVm: com.budget.app.ui.today.ExtrasViewModel = viewModel(key = "extras") { com.budget.app.ui.today.ExtrasViewModel(container) }
+    val phoneVm: PhoneViewModel = viewModel(key = "phone") { PhoneViewModel(container) }
     val extras by extrasVm.ui.collectAsState()
-    var showReview by rememberSaveable { mutableStateOf(false) }
+    val phone by phoneVm.ui.collectAsState()
     val update by container.updates.available.collectAsState()
 
     var record by remember { mutableStateOf<RecordRequest?>(null) }
     var editingBalanceOf by remember { mutableStateOf<MonthViewModel?>(null) }
-    var showUpdate by rememberSaveable { mutableStateOf(false) }
-    // "What can I pay?" opens over More, from More or from Today's balance card.
-    var showPlan by rememberSaveable { mutableStateOf(false) }
-    var planFromToday by rememberSaveable { mutableStateOf(false) }
-    // A category opened from Insights.
-    var showCategory by rememberSaveable { mutableStateOf(false) }
+    var more by rememberSaveable { mutableStateOf(MoreScreenKind.NONE) }
+    // Insights shows Overview or Budget.
+    var insightsPart by rememberSaveable { mutableStateOf("overview") }
 
-    // Opened from the weekly summary: straight to Insights.
+    fun go(screen: String) {
+        when (screen) {
+            "tracker" -> tab = Tab.MONTH
+            "cards" -> tab = Tab.CARDS
+            "insights" -> {
+                insightsPart = "overview"
+                tab = Tab.INSIGHTS
+            }
+            "budget" -> {
+                insightsPart = "budget"
+                phoneVm.loadBudget(null)
+                tab = Tab.INSIGHTS
+            }
+            "budget-month" -> {
+                insightsPart = "budget"
+                phoneVm.loadBudget("month")
+                tab = Tab.INSIGHTS
+            }
+            "review" -> {
+                more = MoreScreenKind.REVIEW
+                tab = Tab.MORE
+            }
+            "transactions" -> {
+                more = MoreScreenKind.TRANSACTIONS
+                phoneVm.loadTransactions()
+                tab = Tab.MORE
+            }
+            else -> tab = Tab.TODAY
+        }
+    }
+
+    // Opened from a notification: straight to its screen.
+    val openScreen by container.openScreen.collectAsState()
+    LaunchedEffect(openScreen) {
+        openScreen?.let {
+            go(it)
+            container.openScreen.value = null
+        }
+    }
     val openInsights by container.openInsights.collectAsState()
     LaunchedEffect(openInsights) {
         if (openInsights) {
             tab = Tab.INSIGHTS
-            showCategory = false
             container.openInsights.value = false
         }
     }
-
-    // Opened from a card reminder: straight to the Cards tab.
     val openCards by container.openCards.collectAsState()
     LaunchedEffect(openCards) {
         if (openCards) {
@@ -116,141 +158,173 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
             container.openCards.value = false
         }
     }
-
-    // Opened from the update notification: straight to the Update screen.
     val openUpdate by container.openUpdate.collectAsState()
     LaunchedEffect(openUpdate) {
         if (openUpdate) {
             tab = Tab.MORE
-            showUpdate = true
+            more = MoreScreenKind.UPDATE
             container.openUpdate.value = false
         }
     }
 
-    // Android 13+: ask once for notifications, for "Update available".
-    val notifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= 33 && container.settings.get(Settings.ASKED_NOTIFICATIONS) == null) {
-            container.settings.set(Settings.ASKED_NOTIFICATIONS, "1")
-            notifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+    fun reload(t: Tab) {
+        when (t) {
+            Tab.TODAY -> {
+                todayVm.load()
+                extrasVm.load()
+                phoneVm.loadToday()
+            }
+            Tab.MONTH -> monthVm.load()
+            Tab.CARDS -> {
+                extrasVm.load()
+                phoneVm.loadToday()
+            }
+            Tab.INSIGHTS -> {
+                extrasVm.load()
+                phoneVm.loadOverview()
+                phoneVm.loadBudget()
+            }
+            Tab.MORE -> when (more) {
+                MoreScreenKind.PLAN -> planVm.load()
+                MoreScreenKind.TRANSACTIONS -> phoneVm.loadTransactions()
+                MoreScreenKind.REVIEW -> extrasVm.load()
+                else -> extrasVm.load()
+            }
         }
     }
 
     // Showing a tab refreshes it, so a change made on one shows on the others.
-    LaunchedEffect(tab) {
-        when (tab) {
-            Tab.TODAY -> {
-                todayVm.load()
-                extrasVm.load()
-            }
-            Tab.MONTH -> monthVm.load()
-            Tab.CARDS, Tab.INSIGHTS -> extrasVm.load()
-            Tab.MORE -> if (showPlan) planVm.load() else Unit
-        }
-    }
+    LaunchedEffect(tab) { reload(tab) }
 
-    BackHandler(enabled = tab != Tab.TODAY && !showUpdate) { tab = Tab.TODAY }
-    BackHandler(enabled = tab == Tab.INSIGHTS && showCategory) { showCategory = false }
-    BackHandler(enabled = tab == Tab.MORE && showPlan) {
-        showPlan = false
-        if (planFromToday) tab = Tab.TODAY
-    }
-    BackHandler(enabled = tab == Tab.TODAY && showReview) {
-        showReview = false
-        todayVm.load()
-    }
+    BackHandler(enabled = tab != Tab.TODAY && more == MoreScreenKind.NONE) { tab = Tab.TODAY }
+    BackHandler(enabled = tab == Tab.MORE && more != MoreScreenKind.NONE) { more = MoreScreenKind.NONE }
 
     // Pull down on a tab to reload it from the server (not the bank).
     var pulled by remember { mutableStateOf(false) }
     val todayLoading by todayVm.ui.collectAsState()
     val monthLoading by monthVm.ui.collectAsState()
-    val busy = extras.refreshing || todayLoading.loading || monthLoading.loading
+    val busy = extras.refreshing || todayLoading.loading || monthLoading.loading || phone.loading
     LaunchedEffect(pulled, busy) {
         if (pulled && !busy) {
             kotlinx.coroutines.delay(500)
             pulled = false
         }
     }
+    // A server older than the phone views: the earlier screens, as before.
+    val legacy = phone.unsupported && phone.today == null
 
     Column(Modifier.fillMaxSize().background(c.background)) {
         com.budget.app.ui.common.PullRefresh(
             refreshing = pulled,
             onRefresh = {
                 pulled = true
-                when (tab) {
-                    Tab.TODAY -> {
-                        todayVm.load()
-                        extrasVm.load()
-                    }
-                    Tab.MONTH -> monthVm.load()
-                    Tab.CARDS, Tab.INSIGHTS -> extrasVm.load()
-                    Tab.MORE -> if (showPlan) planVm.load() else Unit
-                }
+                reload(tab)
             },
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) {
             when (tab) {
-                Tab.TODAY -> if (showReview) {
-                    com.budget.app.ui.review.ReviewScreen(extrasVm, onBack = {
-                        showReview = false
-                        todayVm.load()
-                    })
-                } else {
-                    com.budget.app.ui.today.TodayScreen(
-                        vm = todayVm,
-                        onRecord = { record = RecordRequest(todayVm, it) },
-                        onEditBalance = { editingBalanceOf = todayVm },
-                        onOpenMonth = { tab = Tab.MONTH },
-                        onOpenPlan = {
-                            showPlan = true
-                            planFromToday = true
-                            showUpdate = false
-                            tab = Tab.MORE
-                            planVm.load()
-                        },
-                        onOpenMore = { tab = Tab.MORE },
-                        extras = extras,
-                        onOpenReview = { showReview = true },
-                        onOpenCards = { tab = Tab.CARDS },
-                        onOpenInsights = { tab = Tab.INSIGHTS },
-                        onRefreshBank = { extrasVm.syncBank(onDone = { todayVm.load() }) },
-                    )
+                Tab.TODAY -> {
+                    val t = phone.today
+                    if (t != null && !legacy) {
+                        TodayHome(
+                            t = t,
+                            bankSyncing = extras.bankSyncing,
+                            bankNote = extras.bankNote,
+                            offline = todayLoading.offline,
+                            onRefreshBank = { extrasVm.syncBank(onDone = { phoneVm.loadToday() }) },
+                            onOpen = { go(it) },
+                            onRecord = { id ->
+                                val view = todayLoading.view
+                                val entry = view?.let { v -> MonthLogic.everything(v).firstOrNull { it.lineItemId == id } }
+                                record = RecordRequest(todayVm, entry)
+                            },
+                        )
+                    } else {
+                        com.budget.app.ui.today.TodayScreen(
+                            vm = todayVm,
+                            onRecord = { record = RecordRequest(todayVm, it) },
+                            onEditBalance = { editingBalanceOf = todayVm },
+                            onOpenMonth = { tab = Tab.MONTH },
+                            onOpenPlan = {
+                                more = MoreScreenKind.PLAN
+                                tab = Tab.MORE
+                                planVm.load()
+                            },
+                            onOpenMore = { tab = Tab.MORE },
+                            extras = extras,
+                            onOpenReview = { go("review") },
+                            onOpenCards = { tab = Tab.CARDS },
+                            onOpenInsights = { tab = Tab.INSIGHTS },
+                            onRefreshBank = { extrasVm.syncBank(onDone = { todayVm.load() }) },
+                        )
+                    }
                 }
                 Tab.MONTH -> MonthScreen(monthVm, onRecord = { record = RecordRequest(monthVm, it) })
-                Tab.CARDS -> com.budget.app.ui.cards.CardsScreen(container, extras)
-                Tab.INSIGHTS -> if (showCategory) {
-                    com.budget.app.ui.insights.CategoryScreen(extras.category, onBack = { showCategory = false })
-                } else {
+                Tab.CARDS -> {
+                    val today = phone.today
+                    com.budget.app.ui.cards.CardsScreen(
+                        container, extras,
+                        header = if (today?.statement != null) ({ StatementHeader(today, onOpenBudget = { go("budget") }) }) else null,
+                    )
+                }
+                Tab.INSIGHTS -> if (legacy) {
                     com.budget.app.ui.insights.InsightsScreen(
                         extras,
                         onMonth = { extrasVm.showInsightsMonth(it) },
-                        onOpenCategory = {
-                            extrasVm.openCategory(it)
-                            showCategory = true
-                        },
+                        onOpenCategory = { extrasVm.openCategory(it) },
                         onMakeBill = { id, name -> extrasVm.chargeAsBill(id, name) },
                     )
+                } else {
+                    InsightsHome(
+                        overview = phone.overview,
+                        budget = phone.budget,
+                        part = insightsPart,
+                        onPart = {
+                            insightsPart = it
+                            if (it == "budget" && phone.budget == null) phoneVm.loadBudget()
+                        },
+                        onBudgetView = { phoneVm.loadBudget(it) },
+                    )
                 }
-                Tab.MORE -> when {
-                    showUpdate -> UpdateScreen(container, onBack = { showUpdate = false })
-                    showPlan -> PlanScreen(planVm, onEditBalance = { editingBalanceOf = todayVm }, onBack = {
-                        showPlan = false
-                        if (planFromToday) tab = Tab.TODAY
+                Tab.MORE -> when (more) {
+                    MoreScreenKind.UPDATE -> UpdateScreen(container, onBack = { more = MoreScreenKind.NONE })
+                    MoreScreenKind.PLAN -> PlanScreen(planVm, onEditBalance = { editingBalanceOf = todayVm }, onBack = { more = MoreScreenKind.NONE })
+                    MoreScreenKind.REVIEW -> com.budget.app.ui.review.ReviewScreen(extrasVm, onBack = {
+                        more = MoreScreenKind.NONE
+                        phoneVm.loadToday()
                     })
-                    else -> MoreScreen(container, session, onOpenUpdate = { showUpdate = true }, onOpenPlan = {
-                        showPlan = true
-                        planFromToday = false
-                        planVm.load()
-                    })
+                    MoreScreenKind.TRANSACTIONS -> TransactionsScreen(
+                        ui = phone,
+                        onBack = { more = MoreScreenKind.NONE },
+                        onFilter = { phoneVm.loadTransactions(filter = it) },
+                        onSearch = { phoneVm.loadTransactions(search = it) },
+                        onCategorize = { t, cat, all, transfer -> phoneVm.categorize(t, cat, all, transfer) },
+                    )
+                    MoreScreenKind.NOTIFICATIONS -> NotificationsScreen(container, onBack = { more = MoreScreenKind.NONE })
+                    MoreScreenKind.NONE -> MoreScreen(
+                        container, session,
+                        onOpenUpdate = { more = MoreScreenKind.UPDATE },
+                        onOpenPlan = {
+                            more = MoreScreenKind.PLAN
+                            planVm.load()
+                        },
+                        onOpenReview = {
+                            more = MoreScreenKind.REVIEW
+                            extrasVm.load()
+                        },
+                        onOpenTransactions = {
+                            more = MoreScreenKind.TRANSACTIONS
+                            phoneVm.loadTransactions()
+                        },
+                        onOpenNotifications = { more = MoreScreenKind.NOTIFICATIONS },
+                        reviewCount = phone.today?.needsYou?.firstOrNull { it.kind == "review" }?.let { n -> n.text.takeWhile { ch -> ch.isDigit() }.toIntOrNull() } ?: 0,
+                    )
                 }
             }
         }
-        BottomBar(tab, updateAvailable = update != null, onSelect = {
-            if (it == Tab.INSIGHTS && it == tab) showCategory = false
-            if (it == Tab.MORE && (it == tab || planFromToday)) {
-                showUpdate = false
-                showPlan = false
-            }
+        val reviewWaiting = phone.today?.needsYou?.any { it.kind == "review" } == true
+        BottomBar(tab, updateAvailable = update != null, reviewWaiting = reviewWaiting, onSelect = {
+            if (it == Tab.MORE && it == tab) more = MoreScreenKind.NONE
             tab = it
         })
     }
@@ -268,10 +342,12 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
             onConfirm = { entry, cents, day ->
                 r.vm.record(entry, cents, day)
                 record = null
+                phoneVm.loadToday()
             },
             onClear = { entry ->
                 r.vm.clear(entry)
                 record = null
+                phoneVm.loadToday()
             },
         )
     }
@@ -285,14 +361,14 @@ fun MainScreen(container: AppContainer, session: SessionState.SignedIn) {
             onSave = {
                 vm.setBalance(it)
                 editingBalanceOf = null
-                if (showPlan) planVm.load()
+                if (more == MoreScreenKind.PLAN) planVm.load()
             },
         )
     }
 }
 
 @Composable
-private fun BottomBar(current: Tab, updateAvailable: Boolean, onSelect: (Tab) -> Unit) {
+private fun BottomBar(current: Tab, updateAvailable: Boolean, reviewWaiting: Boolean = false, onSelect: (Tab) -> Unit) {
     val c = Budget.colors
     Column(Modifier.fillMaxWidth().background(c.surface)) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(c.line))
@@ -317,7 +393,7 @@ private fun BottomBar(current: Tab, updateAvailable: Boolean, onSelect: (Tab) ->
                     ) {
                         PhIcon(if (on) t.iconOn else t.icon, null, if (on) c.accent else c.muted)
                         // The update dot, on every screen: light blue with a ring in the bar color.
-                        if (t == Tab.MORE && updateAvailable) {
+                        if (t == Tab.MORE && (updateAvailable || reviewWaiting)) {
                             Box(
                                 Modifier
                                     .align(Alignment.TopEnd)
@@ -325,8 +401,8 @@ private fun BottomBar(current: Tab, updateAvailable: Boolean, onSelect: (Tab) ->
                                     .size(14.dp)
                                     .background(c.surface, CircleShape)
                                     .padding(2.dp)
-                                    .background(UpdateDot, CircleShape)
-                                    .semantics { contentDescription = "Update available" },
+                                    .background(if (reviewWaiting) c.warn else UpdateDot, CircleShape)
+                                    .semantics { contentDescription = if (reviewWaiting) "Items to review" else "Update available" },
                             )
                         }
                     }

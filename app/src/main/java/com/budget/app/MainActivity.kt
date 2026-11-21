@@ -40,6 +40,10 @@ class MainActivity : ComponentActivity() {
             "insights" -> container.openInsights.value = true
         }
         intent?.removeExtra(EXTRA_OPEN_TAB)
+        intent?.getStringExtra(com.budget.app.data.reminders.AlertWorker.EXTRA_OPEN_SCREEN)?.let {
+            container.openScreen.value = it
+            intent.removeExtra(com.budget.app.data.reminders.AlertWorker.EXTRA_OPEN_SCREEN)
+        }
         if (intent?.getStringExtra(UpdateNotifier.EXTRA_OPEN) == UpdateNotifier.OPEN_UPDATE) {
             container.openUpdate.value = true
             intent.removeExtra(UpdateNotifier.EXTRA_OPEN)

@@ -76,7 +76,16 @@ import kotlinx.coroutines.launch
 
 /** The More tab: account, what's waiting, appearance, updates, sign out. */
 @Composable
-fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUpdate: () -> Unit, onOpenPlan: () -> Unit = {}) {
+fun MoreScreen(
+    container: AppContainer,
+    session: SessionState.SignedIn,
+    onOpenUpdate: () -> Unit,
+    onOpenPlan: () -> Unit = {},
+    onOpenReview: () -> Unit = {},
+    onOpenTransactions: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
+    reviewCount: Int = 0,
+) {
     val c = Budget.colors
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -145,11 +154,17 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
             }
         }
 
-        SectionLabel("Budget", c.muted)
+        SectionLabel("Ledger", c.muted)
         Group {
+            Item(Ph.CHECK_CIRCLE, "Review", value = if (reviewCount > 0) reviewCount.toString() else "", onClick = onOpenReview)
+            Divider()
+            Item(Ph.LIST, "Transactions", onClick = onOpenTransactions)
+            Divider()
+            Item(Ph.BELL, "Notifications", onClick = onOpenNotifications)
+            Divider()
             Item(Ph.CHART, "What can I pay?", value = "Plan", onClick = onOpenPlan)
             Divider()
-            Item(Ph.CHART_BAR, "Year & reports", value = "Web", trailing = Ph.OPEN_OUT, onClick = {
+            Item(Ph.CHART_BAR, "Open Ledger on the web", value = "", trailing = Ph.OPEN_OUT, onClick = {
                 runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(session.server))) }
             })
             Item(Ph.SEND, "Waiting to send", value = pending.size.toString(), onClick = { showWaiting = !showWaiting })
@@ -164,18 +179,6 @@ fun MoreScreen(container: AppContainer, session: SessionState.SignedIn, onOpenUp
         SectionLabel("This phone", c.muted)
         Group {
             Item(Ph.CONTRAST, "Appearance", value = "${appearance.mode.label} · ${appearance.accent.label}", onClick = { showAppearance = true })
-            Divider()
-            Item(Ph.BELL, "Bill reminders", value = reminderLead.label, onClick = { showReminders = true })
-            Divider()
-            Item(Ph.CARD, "Card reminders", value = cardLead.short, onClick = { showCardReminders = true })
-            Divider()
-            Item(Ph.PIE, "Weekly summary", value = if (weekly) "Sundays" else "Off", onClick = {
-                if (!weekly && Build.VERSION.SDK_INT >= 33 && !BillReminderWorker.canPost(context)) {
-                    weeklyPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    scope.launch { container.setWeeklySummary(!weekly) }
-                }
-            })
         }
 
         SectionLabel("App", c.muted)

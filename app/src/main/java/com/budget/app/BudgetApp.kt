@@ -6,11 +6,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.budget.app.data.SessionState
 import com.budget.app.data.Settings
-import com.budget.app.data.CardReminderLead
-import com.budget.app.data.ReminderLead
-import com.budget.app.data.reminders.CardReminderWorker
-import com.budget.app.data.reminders.WeeklySummaryWorker
-import com.budget.app.data.reminders.BillReminderWorker
 import com.budget.app.data.update.UpdateCheckWorker
 import com.budget.app.data.update.UpdateNotifier
 import kotlinx.coroutines.CoroutineScope
@@ -40,10 +35,9 @@ class BudgetApp : Application() {
         // Updates: the last result at once, then a check in the background about every two hours.
         scope.launch { container.updates.restore() }
         UpdateCheckWorker.schedule(this)
-        scope.launch { BillReminderWorker.sync(this@BudgetApp, ReminderLead.from(container.settings.get(Settings.REMINDER_LEAD))) }
-        scope.launch { WeeklySummaryWorker.sync(this@BudgetApp, container.settings.get(Settings.WEEKLY_SUMMARY) == "on") }
-        scope.launch { CardReminderWorker.sync(this@BudgetApp, CardReminderLead.from(container.settings.get(Settings.CARD_REMINDER_LEAD))) }
-        com.budget.app.data.reminders.PlanAlertWorker.schedule(this)
+        // Notifications come from one job now (More → Notifications), all off until turned on.
+        com.budget.app.data.reminders.AlertWorker.cancelOld(this)
+        scope.launch { com.budget.app.data.reminders.AlertWorker.sync(this@BudgetApp, container.anyAlertOn()) }
 
         // ...as soon as the app opens fresh, as in the Kairos app, and when it comes
         // back to the front, at most every 30 minutes. (A background wake-up for
